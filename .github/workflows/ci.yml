@@ -98,3 +98,10 @@ jobs:
             exit 1
           fi
           echo "✓ Output is self-contained"
+      - name: Verify Content-Security-Policy
+        run: |
+          if ! grep -q "Content-Security-Policy" /tmp/test-node.html; then
+            echo "FAIL: output HTML missing Content-Security-Policy meta tag"
+            exit 1
+          fi
+          echo "✓ CSP meta tag present"
