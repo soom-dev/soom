@@ -30,6 +30,32 @@ jobs:
       - run: bun install
       - run: bun run lint
       - run: bun run format:check
+      - name: Security pattern check
+        run: |
+          echo "Scanning src/ for dangerous patterns..."
+          FOUND=0
+          # Dangerous code patterns
+          if grep -rnE 'eval\(|new Function\(' src/ --include='*.ts' | grep -v '// safe:'; then
+            echo "FAIL: found eval() or new Function()"
+            FOUND=1
+          fi
+          if grep -rnE '\.innerHTML\s*=' src/ --include='*.ts' | grep -v '// safe:'; then
+            echo "FAIL: found unsanitized .innerHTML assignment"
+            FOUND=1
+          fi
+          if grep -rnE 'exec\(.*`' src/ --include='*.ts' | grep -v '// safe:'; then
+            echo "FAIL: found exec() with template literal"
+            FOUND=1
+          fi
+          # Hardcoded secret patterns
+          if grep -rnE 'sk-[a-zA-Z0-9]{20}|sk_live_|AKIA[A-Z0-9]{16}|ghp_[a-zA-Z0-9]{36}|npm_[a-zA-Z0-9]{36}' src/ --include='*.ts' | grep -v '// safe:'; then
+            echo "FAIL: found hardcoded secret pattern"
+            FOUND=1
+          fi
+          if [ "$FOUND" -eq 1 ]; then
+            exit 1
+          fi
+          echo "✓ No dangerous patterns found"
 
   test:
     name: Test
