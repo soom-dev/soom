@@ -1,5 +1,3 @@
-import { JSDOM } from 'jsdom';
-import mermaid from 'mermaid';
 import type { DiagramParser } from './index.js';
 import type { AnimaGraph, GraphNode, GraphEdge, NodeType, Position } from '../graph/types.js';
 
@@ -40,12 +38,11 @@ function parseTransform(transform: string | null): { x: number; y: number } {
 }
 
 function extractNodeId(elementId: string): string {
-  // Mermaid generates IDs like "flowchart-nodeName-123"
   const match = elementId.match(/^flowchart-(.+?)-\d+$/);
   return match ? match[1] : elementId;
 }
 
-const BROWSER_GLOBALS = ['window', 'document', 'navigator'];
+const BROWSER_GLOBALS = ['window', 'document', 'navigator', 'self'];
 
 export class MermaidParser implements DiagramParser {
   supports(filename: string): boolean {
@@ -53,42 +50,37 @@ export class MermaidParser implements DiagramParser {
   }
 
   async parse(source: string): Promise<AnimaGraph> {
+    const { JSDOM } = await import('jsdom');
     const dom = new JSDOM(
       '<!DOCTYPE html><html><body><div id="mermaid-container"></div></body></html>',
-      {
-        pretendToBeVisual: true,
-      }
+      { pretendToBeVisual: true }
     );
 
     const { window } = dom;
-    const { document } = window;
 
-    // Use Object.defineProperty because Node 21+ makes navigator read-only
     setBrowserGlobal('window', window);
-    setBrowserGlobal('document', document);
+    setBrowserGlobal('document', window.document);
     setBrowserGlobal('navigator', window.navigator);
+    setBrowserGlobal('self', window);
 
     try {
+      const mermaid = (await import('mermaid')).default;
+
       mermaid.initialize({
         startOnLoad: false,
         theme: 'default',
         securityLevel: 'loose',
       });
 
-      // Validate syntax
       await mermaid.parse(source);
-
-      // Render SVG
       const { svg } = await mermaid.render('soom-diagram', source);
 
-      // Parse the SVG to extract graph structure
       const svgDom = new JSDOM(`<html><body>${svg}</body></html>`);
       const svgDoc = svgDom.window.document;
 
       const nodes = new Map<string, GraphNode>();
       const edges: GraphEdge[] = [];
 
-      // Extract nodes
       const nodeElements = svgDoc.querySelectorAll('.node');
       nodeElements.forEach((el) => {
         const rawId = el.getAttribute('id') || '';
@@ -118,18 +110,15 @@ export class MermaidParser implements DiagramParser {
         });
       });
 
-      // Extract edges
       const edgePaths = svgDoc.querySelectorAll('.edgePath path, .edge-pattern-0 path');
       let edgeIndex = 0;
       edgePaths.forEach((pathEl) => {
         const d = pathEl.getAttribute('d') || '';
         const edgeId = `edge-${edgeIndex}`;
 
-        // Try to determine source/target from parent element
         const parent = pathEl.closest('.edgePath') || pathEl.parentElement;
         const parentId = parent?.getAttribute('id') || '';
 
-        // Mermaid edge IDs follow patterns like "L-A-B" or "L_A_B"
         const edgeMatch = parentId.match(/L[-_](.+?)[-_](.+?)$/);
         let source = '';
         let target = '';
@@ -148,7 +137,6 @@ export class MermaidParser implements DiagramParser {
         edgeIndex++;
       });
 
-      // Extract edge labels
       const edgeLabels = svgDoc.querySelectorAll('.edgeLabel');
       edgeLabels.forEach((el, i) => {
         const labelText = el.textContent?.trim();
