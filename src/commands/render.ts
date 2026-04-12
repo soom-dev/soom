@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve, basename, dirname, join } from 'node:path';
 import { renderHtml, type ThemeName } from '../renderer/html.js';
-import { fixSvgViewBox } from '../renderer/svg-viewbox.js';
+import { fixSvgViewBox, fixForeignObjects } from '../renderer/svg-viewbox.js';
 
 interface RenderOptions {
   output?: string;
@@ -142,7 +142,7 @@ export async function renderCommand(input: string, options: RenderOptions) {
 
   const selectedTheme = options.theme ?? 'dark';
   const rawSvg = await renderMermaidToSvg(source, selectedTheme);
-  const svg = fixSvgViewBox(rawSvg);
+  const svg = fixSvgViewBox(fixForeignObjects(rawSvg));
   const html = await renderHtml(svg, selectedTheme);
 
   const outputPath = options.output
