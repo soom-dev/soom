@@ -15,7 +15,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "bun build src/cli.ts --outdir dist --target node",
+    "build": "bun build src/cli.ts --outdir dist --target node --packages external",
     "dev": "bun run src/cli.ts",
     "lint": "eslint src/",
     "format": "prettier --write src/",
