@@ -41,8 +41,21 @@ jobs:
           bun-version: latest
       - run: bun install
       - run: bun run build
-      - name: Smoke test
+      - name: Smoke test (node)
         run: |
           echo 'graph TD; A-->B; B-->C;' > /tmp/test.mmd
-          node dist/cli.js render /tmp/test.mmd -o /tmp/test.html
-          test -s /tmp/test.html && echo "✓ Smoke test passed" || exit 1
+          node dist/cli.js render /tmp/test.mmd -o /tmp/test-node.html
+          test -s /tmp/test-node.html || { echo "FAIL: output file empty or missing"; exit 1; }
+          echo "✓ Node smoke test passed"
+      - name: Smoke test (bun)
+        run: |
+          bun dist/cli.js render /tmp/test.mmd -o /tmp/test-bun.html
+          test -s /tmp/test-bun.html || { echo "FAIL: output file empty or missing"; exit 1; }
+          echo "✓ Bun smoke test passed"
+      - name: Verify self-contained HTML
+        run: |
+          if grep -qE 'href="https?://|src="https?://' /tmp/test-node.html; then
+            echo "FAIL: output contains external resource references"
+            exit 1
+          fi
+          echo "✓ Output is self-contained"
