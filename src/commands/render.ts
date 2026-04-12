@@ -7,6 +7,27 @@ interface RenderOptions {
   theme?: ThemeName;
 }
 
+function setBrowserGlobal(key: string, value: unknown) {
+  Object.defineProperty(globalThis, key, {
+    value,
+    writable: true,
+    configurable: true,
+  });
+}
+
+function deleteBrowserGlobal(key: string) {
+  // Restore original descriptor if one existed, otherwise delete
+  try {
+    delete (globalThis as Record<string, unknown>)[key];
+  } catch {
+    Object.defineProperty(globalThis, key, {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
+  }
+}
+
 function patchJsdomForSvg(window: Record<string, unknown>) {
   // jsdom doesn't implement SVG layout methods that mermaid needs.
   // Polyfill getBBox, getComputedTextLength, etc. with sensible defaults.
@@ -64,6 +85,15 @@ function patchJsdomForSvg(window: Record<string, unknown>) {
   }
 }
 
+const BROWSER_GLOBALS = [
+  'window',
+  'document',
+  'navigator',
+  'self',
+  'requestAnimationFrame',
+  'cancelAnimationFrame',
+];
+
 async function renderMermaidToSvg(source: string): Promise<string> {
   const { JSDOM } = await import('jsdom');
   const dom = new JSDOM(
@@ -73,14 +103,14 @@ async function renderMermaidToSvg(source: string): Promise<string> {
 
   const { window } = dom;
 
-  // Set up browser globals before mermaid import
-  (globalThis as Record<string, unknown>).window = window;
-  (globalThis as Record<string, unknown>).document = window.document;
-  (globalThis as Record<string, unknown>).navigator = window.navigator;
-  (globalThis as Record<string, unknown>).self = window;
-  (globalThis as Record<string, unknown>).requestAnimationFrame = (cb: () => void) =>
-    setTimeout(cb, 0);
-  (globalThis as Record<string, unknown>).cancelAnimationFrame = clearTimeout;
+  // Set up browser globals before mermaid import.
+  // Use Object.defineProperty because Node 21+ makes navigator read-only.
+  setBrowserGlobal('window', window);
+  setBrowserGlobal('document', window.document);
+  setBrowserGlobal('navigator', window.navigator);
+  setBrowserGlobal('self', window);
+  setBrowserGlobal('requestAnimationFrame', (cb: () => void) => setTimeout(cb, 0));
+  setBrowserGlobal('cancelAnimationFrame', clearTimeout);
 
   // Polyfill SVG layout methods that jsdom doesn't implement
   patchJsdomForSvg(window as unknown as Record<string, unknown>);
@@ -98,12 +128,9 @@ async function renderMermaidToSvg(source: string): Promise<string> {
     const { svg } = await mermaid.render('soom-render', source);
     return svg;
   } finally {
-    delete (globalThis as Record<string, unknown>).window;
-    delete (globalThis as Record<string, unknown>).document;
-    delete (globalThis as Record<string, unknown>).navigator;
-    delete (globalThis as Record<string, unknown>).self;
-    delete (globalThis as Record<string, unknown>).requestAnimationFrame;
-    delete (globalThis as Record<string, unknown>).cancelAnimationFrame;
+    for (const key of BROWSER_GLOBALS) {
+      deleteBrowserGlobal(key);
+    }
     dom.window.close();
   }
 }
@@ -113,7 +140,7 @@ export async function renderCommand(input: string, options: RenderOptions) {
   const source = await readFile(inputPath, 'utf-8');
 
   const svg = await renderMermaidToSvg(source);
-  const html = renderHtml(svg, options.theme ?? 'dark');
+  const html = await renderHtml(svg, options.theme ?? 'dark');
 
   const outputPath = options.output
     ? resolve(options.output)

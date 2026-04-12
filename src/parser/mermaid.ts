@@ -3,6 +3,26 @@ import mermaid from 'mermaid';
 import type { DiagramParser } from './index.js';
 import type { AnimaGraph, GraphNode, GraphEdge, NodeType, Position } from '../graph/types.js';
 
+function setBrowserGlobal(key: string, value: unknown) {
+  Object.defineProperty(globalThis, key, {
+    value,
+    writable: true,
+    configurable: true,
+  });
+}
+
+function deleteBrowserGlobal(key: string) {
+  try {
+    delete (globalThis as Record<string, unknown>)[key];
+  } catch {
+    Object.defineProperty(globalThis, key, {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
+  }
+}
+
 function inferNodeType(shape: string, label: string): NodeType {
   if (shape === 'diamond' || shape === 'rhombus') return 'decision';
   if (shape === 'cylinder' || label.startsWith('(')) return 'database';
@@ -25,6 +45,8 @@ function extractNodeId(elementId: string): string {
   return match ? match[1] : elementId;
 }
 
+const BROWSER_GLOBALS = ['window', 'document', 'navigator'];
+
 export class MermaidParser implements DiagramParser {
   supports(filename: string): boolean {
     return /\.(mmd|mermaid)$/i.test(filename);
@@ -41,10 +63,10 @@ export class MermaidParser implements DiagramParser {
     const { window } = dom;
     const { document } = window;
 
-    // Set up globals that mermaid expects
-    (globalThis as Record<string, unknown>).window = window;
-    (globalThis as Record<string, unknown>).document = document;
-    (globalThis as Record<string, unknown>).navigator = window.navigator;
+    // Use Object.defineProperty because Node 21+ makes navigator read-only
+    setBrowserGlobal('window', window);
+    setBrowserGlobal('document', document);
+    setBrowserGlobal('navigator', window.navigator);
 
     try {
       mermaid.initialize({
@@ -145,9 +167,9 @@ export class MermaidParser implements DiagramParser {
         },
       };
     } finally {
-      delete (globalThis as Record<string, unknown>).window;
-      delete (globalThis as Record<string, unknown>).document;
-      delete (globalThis as Record<string, unknown>).navigator;
+      for (const key of BROWSER_GLOBALS) {
+        deleteBrowserGlobal(key);
+      }
       dom.window.close();
     }
   }
