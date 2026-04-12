@@ -1,0 +1,6 @@
+graph TD
+    A[Request] --> B{Auth Check}
+    B -->|Valid| C[Process]
+    B -->|Invalid| D[Reject]
+    C --> E[Response]
+    D --> E
