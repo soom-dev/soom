@@ -139,5 +139,12 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 *.html
+!examples/*.html
 .hansoom/
 .soom/
+/tmp/
+
+# Claude
+CLAUDE.md
+.claude/
+.claudeignore

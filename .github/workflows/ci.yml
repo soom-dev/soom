@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run lint
+      - run: bun run format:check
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun test
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run build
+      - name: Smoke test (node)
+        run: |
+          echo 'graph TD; A-->B; B-->C;' > /tmp/test.mmd
+          node dist/cli.js render /tmp/test.mmd -o /tmp/test-node.html
+          test -s /tmp/test-node.html || { echo "FAIL: output file empty or missing"; exit 1; }
+          echo "✓ Node smoke test passed"
+      - name: Smoke test (bun)
+        run: |
+          bun dist/cli.js render /tmp/test.mmd -o /tmp/test-bun.html
+          test -s /tmp/test-bun.html || { echo "FAIL: output file empty or missing"; exit 1; }
+          echo "✓ Bun smoke test passed"
+      - name: Verify self-contained HTML
+        run: |
+          if grep -qE 'href="https?://|src="https?://' /tmp/test-node.html; then
+            echo "FAIL: output contains external resource references"
+            exit 1
+          fi
+          echo "✓ Output is self-contained"
