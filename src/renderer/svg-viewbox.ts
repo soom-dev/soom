@@ -1,4 +1,28 @@
 /**
+ * Fixes foreignObject elements that Mermaid creates with width="0" height="0".
+ *
+ * In jsdom, getBBox() returns stub values so Mermaid can't measure text. The
+ * foreignObject containers end up with zero dimensions, making labels invisible.
+ * We estimate dimensions from the text content inside each foreignObject.
+ */
+export function fixForeignObjects(svg: string): string {
+  return svg.replace(
+    /<foreignObject\s+width="0"\s+height="0">([\s\S]*?)<\/foreignObject>/g,
+    (_match, inner: string) => {
+      // Extract visible text content (strip HTML tags)
+      const text = inner.replace(/<[^>]*>/g, '').trim();
+      const lines = text.split('\n').filter((l: string) => l.trim().length > 0);
+      const maxLineLen = Math.max(...lines.map((l: string) => l.length), 0);
+
+      const width = Math.max(maxLineLen * 9, 60);
+      const height = Math.max(lines.length * 24, 24);
+
+      return `<foreignObject width="${width}" height="${height}">${inner}</foreignObject>`;
+    }
+  );
+}
+
+/**
  * Post-processes SVG output from Mermaid to fix the viewBox dimensions.
  *
  * Mermaid relies on getBBox() to compute the viewBox, but in jsdom that method
