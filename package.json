@@ -1,0 +1,59 @@
+{
+  "name": "hansoom",
+  "version": "0.1.0",
+  "description": "Breathe life into your diagrams. Turn Mermaid files into animated, interactive HTML.",
+  "type": "module",
+  "bin": {
+    "soom": "./dist/cli.js",
+    "hansoom": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "bun": ">=1.0.0",
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "bun build src/cli.ts --outdir dist --target node",
+    "dev": "bun run src/cli.ts",
+    "lint": "eslint src/",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
+    "test": "bun test",
+    "preview": "bun run dev render examples/microservice.mmd -o /tmp/preview.html && open /tmp/preview.html"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soom-dev/soom.git"
+  },
+  "homepage": "https://hansoom.dev",
+  "keywords": [
+    "mermaid",
+    "diagram",
+    "animation",
+    "visualization",
+    "interactive",
+    "cli",
+    "html",
+    "svg"
+  ],
+  "dependencies": {
+    "commander": "^14.0.3",
+    "dompurify": "^3.3.3",
+    "jsdom": "^29.0.2",
+    "mermaid": "^11.14.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/jsdom": "^28.0.1",
+    "@types/node": "^25.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.58.1",
+    "@typescript-eslint/parser": "^8.58.1",
+    "eslint": "^10.2.0",
+    "prettier": "^3.8.2",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.1"
+  }
+}
