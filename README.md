@@ -70,11 +70,13 @@ Hansoom aims to be the go-to tool for turning static diagram-as-code files into 
 ### Roadmap
 
 - [x] **Phase 0** — Project scaffold, CLI foundation, static Mermaid rendering
-- [ ] **Phase 1** — Animation engine with playback controls, edge flow animation, step annotations
-- [ ] **Phase 2** — Auto-sequencer with topological sort, custom sequence files
-- [ ] **Phase 3** — Themes, custom styling, export options
-- [ ] **Phase 4** — D2 and PlantUML parser support
-- [ ] **Phase 5** — Interactive editing and live preview
+- [ ] **Phase 1** — Animation engine (edge flow, node states, playback controls, step annotations)
+- [ ] **Phase 2** — Launch (Hacker News, community setup, npm publish)
+- [ ] **Phase 3** — Timeline YAML (custom sequences, parallel steps, choreographed animations)
+- [ ] **Phase 4** — AI agent integration (structured context export, trace overlay)
+- [ ] **Phase 5** — Monetization (Pro tier, funding decision)
+- [ ] **Phase 6** — Multi-format support (D2, PlantUML, code scanner)
+- [ ] **Phase 7** — Platform (hosted rendering API, VS Code extension, GitHub Action)
 
 ## Tech Stack
 
