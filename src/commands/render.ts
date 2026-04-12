@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve, basename, dirname, join } from 'node:path';
 import { renderHtml, type ThemeName } from '../renderer/html.js';
-import { fixSvgViewBox } from '../renderer/svg-viewbox.js';
+import { fixSvgViewBox, fixForeignObjects } from '../renderer/svg-viewbox.js';
 
 interface RenderOptions {
   output?: string;
@@ -95,7 +95,7 @@ const BROWSER_GLOBALS = [
   'cancelAnimationFrame',
 ];
 
-async function renderMermaidToSvg(source: string): Promise<string> {
+async function renderMermaidToSvg(source: string, theme: ThemeName): Promise<string> {
   const { JSDOM } = await import('jsdom');
   const dom = new JSDOM(
     '<!DOCTYPE html><html><body><div id="mermaid-container"></div></body></html>',
@@ -121,7 +121,7 @@ async function renderMermaidToSvg(source: string): Promise<string> {
 
     mermaid.initialize({
       startOnLoad: false,
-      theme: 'default',
+      theme: theme === 'dark' ? 'dark' : 'default',
       securityLevel: 'loose',
     });
 
@@ -140,9 +140,10 @@ export async function renderCommand(input: string, options: RenderOptions) {
   const inputPath = resolve(input);
   const source = await readFile(inputPath, 'utf-8');
 
-  const rawSvg = await renderMermaidToSvg(source);
-  const svg = fixSvgViewBox(rawSvg);
-  const html = await renderHtml(svg, options.theme ?? 'dark');
+  const selectedTheme = options.theme ?? 'dark';
+  const rawSvg = await renderMermaidToSvg(source, selectedTheme);
+  const svg = fixSvgViewBox(fixForeignObjects(rawSvg));
+  const html = await renderHtml(svg, selectedTheme);
 
   const outputPath = options.output
     ? resolve(options.output)
