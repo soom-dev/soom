@@ -46,14 +46,15 @@ describe('fixForeignObjects', () => {
 });
 
 describe('Theme and label integration', () => {
-  // Render examples via CLI subprocess to avoid DOMPurify module cache issues
+  // Render examples via CLI subprocess to avoid DOMPurify module cache issues.
+  // Timeout increased for CI where subprocess startup is slower.
   beforeAll(async () => {
     await $`bun run src/cli.ts render examples/simple.mmd -o /tmp/test-int-dark.html`.quiet();
     await $`bun run src/cli.ts render examples/simple.mmd -o /tmp/test-int-light.html -t light`.quiet();
     await $`bun run src/cli.ts render examples/branching.mmd -o /tmp/test-int-branch.html`.quiet();
     await $`bun run src/cli.ts render examples/microservice.mmd -o /tmp/test-int-micro.html`.quiet();
     await $`bun run src/cli.ts render examples/cicd.mmd -o /tmp/test-int-cicd.html`.quiet();
-  });
+  }, 30_000);
 
   it('should not contain light default fills (#ECECFF) in dark theme', async () => {
     const html = await readFile('/tmp/test-int-dark.html', 'utf-8');
