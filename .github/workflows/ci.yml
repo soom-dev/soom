@@ -95,8 +95,14 @@ jobs:
           echo "✓ Bun smoke test passed"
       - name: Verify self-contained HTML
         run: |
-          if grep -qE 'href="https?://|src="https?://' /tmp/test-node.html; then
-            echo "FAIL: output contains external resource references"
+          # Check for external resource loading (stylesheets, scripts, images)
+          # Exclude <a> navigation links (watermark link to hansoom.dev is intentional)
+          if grep -qE 'src="https?://' /tmp/test-node.html; then
+            echo "FAIL: output contains external src references"
+            exit 1
+          fi
+          if grep -qE '<link[^>]*href="https?://' /tmp/test-node.html; then
+            echo "FAIL: output contains external stylesheet references"
             exit 1
           fi
           echo "✓ Output is self-contained"

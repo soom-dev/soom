@@ -14,16 +14,43 @@ export const darkTheme = {
       color: #e0e0e0;
       margin: 0;
       padding: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     .diagram-container {
       width: 100%;
-      box-sizing: border-box;
+      max-width: 100%;
+      max-height: 90vh;
     }
-    svg {
+    .diagram-container svg {
       width: 100%;
       height: auto;
-      max-height: 90vh;
+      display: block;
+      margin: 0 auto;
+    }
+    .soom-watermark {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      text-decoration: none;
+      width: 408px;
+      height: 61px;
+    }
+    .soom-wm-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    .soom-wm-char {
+      fill: none;
+      stroke: #00d4ff;
+      stroke-width: 2;
     }
   `,
 };
