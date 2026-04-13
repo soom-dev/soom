@@ -49,10 +49,36 @@ describe('generateAnimationScript', () => {
     expect(script).toContain('End');
   });
 
-  it('should contain anime.js API calls', () => {
+  it('should use anime.js createTimeline API', () => {
     const script = generateAnimationScript(sequence, graph);
-    expect(script).toContain('anime.animate');
+    expect(script).toContain('createTimeline');
     expect(script).toContain('strokeDashoffset');
+  });
+
+  it('should expose timeline object on soomAnimation', () => {
+    const script = generateAnimationScript(sequence, graph);
+    expect(script).toContain('timeline: timeline');
+  });
+
+  it('should expose progress getter', () => {
+    const script = generateAnimationScript(sequence, graph);
+    expect(script).toContain('get progress');
+    expect(script).toContain('timeline.progress');
+  });
+
+  it('should use playbackRate for speed control', () => {
+    const script = generateAnimationScript(sequence, graph);
+    expect(script).toContain('playbackRate');
+  });
+
+  it('should use timeline.seek for goToStep', () => {
+    const script = generateAnimationScript(sequence, graph);
+    expect(script).toContain('timeline.seek');
+  });
+
+  it('should use timeline labels for step boundaries', () => {
+    const script = generateAnimationScript(sequence, graph);
+    expect(script).toContain("label('step-");
   });
 });
 
@@ -91,12 +117,24 @@ describe('Animation integration', () => {
     expect(html).toContain('soom-flow-particle');
   });
 
+  it('should use createTimeline in rendered output', async () => {
+    const html = await readFile('/tmp/test-anim-simple.html', 'utf-8');
+    expect(html).toContain('createTimeline');
+  });
+
+  it('should expose timeline and progress in rendered output', async () => {
+    const html = await readFile('/tmp/test-anim-simple.html', 'utf-8');
+    expect(html).toContain('timeline: timeline');
+    expect(html).toContain('get progress');
+  });
+
   it('should render all four examples without errors', async () => {
     for (const name of ['simple', 'branch', 'micro', 'cicd']) {
       const html = await readFile(`/tmp/test-anim-${name}.html`, 'utf-8');
       expect(html).toContain('soomAnimation');
       expect(html).toContain('soom-sequence');
       expect(html).toContain('soom-glow');
+      expect(html).toContain('createTimeline');
     }
   });
 
@@ -107,7 +145,6 @@ describe('Animation integration', () => {
       expect(match).toBeTruthy();
       const seq = JSON.parse(match![1]);
       expect(seq.steps.length).toBeGreaterThan(0);
-      // Each step should have activateNodes
       seq.steps.forEach((step: { activateNodes: string[] }) => {
         expect(step.activateNodes.length).toBeGreaterThan(0);
       });
