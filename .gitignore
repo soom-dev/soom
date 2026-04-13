@@ -143,6 +143,7 @@ vite.config.ts.timestamp-*
 .hansoom/
 .soom/
 /tmp/
+scripts/fonts/
 
 # Claude
 CLAUDE.md
