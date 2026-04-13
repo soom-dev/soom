@@ -12,13 +12,14 @@ describe('HTML Renderer', () => {
 
   it('should use dark theme by default', async () => {
     const html = await renderHtml('<svg></svg>');
-    expect(html).toContain('#1a1a2e');
+    expect(html).toContain('class="soom-dark"');
+    expect(html).toContain('#362F49');
   });
 
   it('should use light theme when specified', async () => {
     const html = await renderHtml('<svg></svg>', 'light');
-    expect(html).toContain('#ffffff');
-    expect(html).not.toContain('#1a1a2e');
+    expect(html).toContain('class="soom-light"');
+    expect(html).toContain('#F8F6FF');
   });
 
   it('should include viewport meta tag', async () => {
