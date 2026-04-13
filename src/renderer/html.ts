@@ -188,16 +188,57 @@ interface AnimationData {
   animationScript: string;
 }
 
+function buildToggleScript(): string {
+  return `
+(function() {
+  var body = document.body;
+  var btn = document.querySelector('.soom-theme-toggle');
+  if (!btn) return;
+  var saved = localStorage.getItem('soom-theme');
+  if (saved === 'light' || saved === 'dark') {
+    body.classList.remove('soom-dark', 'soom-light');
+    body.classList.add('soom-' + saved);
+  }
+  function update() {
+    var isDark = body.classList.contains('soom-dark');
+    btn.textContent = isDark ? '\\u2600\\uFE0F' : '\\uD83C\\uDF19';
+  }
+  update();
+  btn.addEventListener('click', function() {
+    var isDark = body.classList.contains('soom-dark');
+    body.classList.remove('soom-dark', 'soom-light');
+    body.classList.add(isDark ? 'soom-light' : 'soom-dark');
+    localStorage.setItem('soom-theme', isDark ? 'light' : 'dark');
+    update();
+  });
+})();`;
+}
+
+function buildToggleCss(): string {
+  return `
+    .soom-theme-toggle {
+      position: fixed; top: 12px; right: 16px; z-index: 30;
+      width: 44px; height: 44px; border: none; border-radius: 50%;
+      background: rgba(128, 128, 128, 0.3); cursor: pointer;
+      font-size: 20px; line-height: 44px; text-align: center;
+      transition: background 200ms ease; backdrop-filter: blur(4px);
+    }
+    .soom-theme-toggle:hover { background: rgba(128, 128, 128, 0.5); }
+  `;
+}
+
 export async function renderHtml(
   svg: string,
   theme: ThemeName = 'dark',
   animation?: AnimationData
 ): Promise<string> {
-  const themeConfig = theme === 'light' ? lightTheme : darkTheme;
   const cleanSvg = await sanitizeSvg(svg);
   const watermarkSvg = buildWatermarkSvg();
   const animeJs = await loadAnimeJs();
   const watermarkScript = buildWatermarkScript();
+  const toggleScript = buildToggleScript();
+  const toggleCss = buildToggleCss();
+  const defaultClass = theme === 'light' ? 'soom-light' : 'soom-dark';
 
   const animationHtml = animation
     ? `
@@ -214,15 +255,19 @@ export async function renderHtml(
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:;">
   <title>Hansoom Diagram</title>
   <style>
-    ${themeConfig.css}
+    ${darkTheme.css}
+    ${lightTheme.css}
+    ${toggleCss}
   </style>
 </head>
-<body>
+<body class="${defaultClass}">
+  <button class="soom-theme-toggle" aria-label="Toggle theme" title="Toggle dark/light mode"></button>
   <div class="diagram-container">
     ${cleanSvg}
   </div>
   ${watermarkSvg}
   <script>${animeJs}</script>
+  <script>${toggleScript}</script>
   <script>${watermarkScript}</script>${animationHtml}
 </body>
 </html>`;
