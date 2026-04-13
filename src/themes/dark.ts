@@ -13,20 +13,17 @@ export const darkTheme = {
       background-color: #1a1a2e;
       color: #e0e0e0;
       margin: 0;
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
+      padding: 2rem;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     .diagram-container {
-      max-width: 100%;
-      overflow: auto;
+      width: 100%;
+      box-sizing: border-box;
     }
     svg {
-      max-width: 100%;
+      width: 100%;
       height: auto;
+      max-height: 90vh;
     }
   `,
 };
