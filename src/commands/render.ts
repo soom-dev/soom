@@ -1,138 +1,57 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve, basename, dirname, join } from 'node:path';
+import { createRequire } from 'node:module';
 import { renderHtml, type ThemeName } from '../renderer/html.js';
-import { fixSvgViewBox, fixForeignObjects } from '../renderer/svg-viewbox.js';
 
 interface RenderOptions {
   output?: string;
   theme?: ThemeName;
 }
 
-function setBrowserGlobal(key: string, value: unknown) {
-  Object.defineProperty(globalThis, key, {
-    value,
-    writable: true,
-    configurable: true,
-  });
+function findMermaidBundlePath(): string {
+  const require = createRequire(import.meta.url);
+  const mermaidMain = require.resolve('mermaid');
+  // mermaid's main resolves to dist/mermaid.core.mjs; we need the browser bundle
+  return join(dirname(mermaidMain), 'mermaid.min.js');
 }
-
-function deleteBrowserGlobal(key: string) {
-  // Restore original descriptor if one existed, otherwise delete
-  try {
-    delete (globalThis as Record<string, unknown>)[key];
-  } catch {
-    Object.defineProperty(globalThis, key, {
-      value: undefined,
-      writable: true,
-      configurable: true,
-    });
-  }
-}
-
-function patchJsdomForSvg(window: Record<string, unknown>) {
-  // jsdom doesn't implement SVG layout methods that mermaid needs.
-  // Polyfill getBBox, getComputedTextLength, etc. with sensible defaults.
-  const proto = (window as { SVGElement?: { prototype: Record<string, unknown> } }).SVGElement
-    ?.prototype;
-  if (proto) {
-    if (!proto.getBBox) {
-      proto.getBBox = function () {
-        return { x: 0, y: 0, width: 100, height: 16 };
-      };
-    }
-    if (!proto.getComputedTextLength) {
-      proto.getComputedTextLength = function (this: { textContent?: string }) {
-        return (this.textContent?.length ?? 0) * 8;
-      };
-    }
-  }
-
-  const textProto = (window as { SVGTextElement?: { prototype: Record<string, unknown> } })
-    .SVGTextElement?.prototype;
-  if (textProto) {
-    if (!textProto.getBBox) {
-      textProto.getBBox = function () {
-        return { x: 0, y: 0, width: 100, height: 16 };
-      };
-    }
-    if (!textProto.getComputedTextLength) {
-      textProto.getComputedTextLength = function (this: { textContent?: string }) {
-        return (this.textContent?.length ?? 0) * 8;
-      };
-    }
-  }
-
-  // Patch createElementNS to ensure SVG elements have getBBox
-  const origCreateElementNS = (
-    window as { document?: { createElementNS?: (...args: unknown[]) => unknown } }
-  ).document?.createElementNS;
-  if (origCreateElementNS) {
-    (
-      window as { document: { createElementNS: (...args: unknown[]) => unknown } }
-    ).document.createElementNS = function (...args: unknown[]) {
-      const el = origCreateElementNS.apply(this, args) as Record<string, unknown>;
-      if (!el.getBBox) {
-        el.getBBox = function () {
-          return { x: 0, y: 0, width: 100, height: 16 };
-        };
-      }
-      if (!el.getComputedTextLength) {
-        el.getComputedTextLength = function () {
-          return ((el as { textContent?: string }).textContent?.length ?? 0) * 8;
-        };
-      }
-      return el;
-    };
-  }
-}
-
-const BROWSER_GLOBALS = [
-  'window',
-  'document',
-  'navigator',
-  'self',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-];
 
 async function renderMermaidToSvg(source: string, theme: ThemeName): Promise<string> {
-  const { JSDOM } = await import('jsdom');
-  const dom = new JSDOM(
-    '<!DOCTYPE html><html><body><div id="mermaid-container"></div></body></html>',
-    { pretendToBeVisual: true }
-  );
+  const { chromium } = await import('playwright');
+  const mermaidPath = findMermaidBundlePath();
+  const mermaidJs = await readFile(mermaidPath, 'utf-8');
 
-  const { window } = dom;
-
-  // Set up browser globals before mermaid import.
-  // Use Object.defineProperty because Node 21+ makes navigator read-only.
-  setBrowserGlobal('window', window);
-  setBrowserGlobal('document', window.document);
-  setBrowserGlobal('navigator', window.navigator);
-  setBrowserGlobal('self', window);
-  setBrowserGlobal('requestAnimationFrame', (cb: () => void) => setTimeout(cb, 0));
-  setBrowserGlobal('cancelAnimationFrame', clearTimeout);
-
-  // Polyfill SVG layout methods that jsdom doesn't implement
-  patchJsdomForSvg(window as unknown as Record<string, unknown>);
-
+  const browser = await chromium.launch();
   try {
-    const mermaid = (await import('mermaid')).default;
+    const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: theme === 'dark' ? 'dark' : 'default',
-      securityLevel: 'loose',
-    });
+    await page.setContent('<!DOCTYPE html><html><body><div id="container"></div></body></html>');
+    await page.addScriptTag({ content: mermaidJs });
 
-    await mermaid.parse(source);
-    const { svg } = await mermaid.render('soom-render', source);
+    const svg = await page.evaluate(
+      ({ source, mermaidTheme }) => {
+        return new Promise<string>((resolve, reject) => {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const m = (window as any).mermaid;
+            m.initialize({
+              startOnLoad: false,
+              theme: mermaidTheme,
+              securityLevel: 'loose',
+            });
+            m.render('soom-render', source)
+              .then(({ svg }: { svg: string }) => resolve(svg))
+              .catch((err: Error) => reject(err.message));
+          } catch (err) {
+            reject(err instanceof Error ? err.message : String(err));
+          }
+        });
+      },
+      { source, mermaidTheme: theme === 'dark' ? 'dark' : 'default' }
+    );
+
     return svg;
   } finally {
-    for (const key of BROWSER_GLOBALS) {
-      deleteBrowserGlobal(key);
-    }
-    dom.window.close();
+    await browser.close();
   }
 }
 
@@ -141,8 +60,7 @@ export async function renderCommand(input: string, options: RenderOptions) {
   const source = await readFile(inputPath, 'utf-8');
 
   const selectedTheme = options.theme ?? 'dark';
-  const rawSvg = await renderMermaidToSvg(source, selectedTheme);
-  const svg = fixSvgViewBox(fixForeignObjects(rawSvg));
+  const svg = await renderMermaidToSvg(source, selectedTheme);
   const html = await renderHtml(svg, selectedTheme);
 
   const outputPath = options.output
