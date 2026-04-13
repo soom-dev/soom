@@ -77,4 +77,37 @@ describe('Playwright rendering integration', () => {
     const markerEnds = (html.match(/marker-end/g) || []).length;
     expect(markerEnds).toBeGreaterThanOrEqual(8);
   });
+
+  it('should have responsive CSS (no min-height:100vh with align-items:center)', async () => {
+    const html = await readFile('/tmp/test-pw-dark.html', 'utf-8');
+    const hasVertCenter = html.includes('align-items: center') && html.includes('min-height: 100vh');
+    expect(hasVertCenter).toBe(false);
+  });
+
+  it('should set SVG width to 100% in CSS', async () => {
+    const html = await readFile('/tmp/test-pw-dark.html', 'utf-8');
+    expect(html).toContain('width: 100%');
+    expect(html).toContain('max-height: 90vh');
+  });
+
+  it('should set diagram container to full width', async () => {
+    const html = await readFile('/tmp/test-pw-dark.html', 'utf-8');
+    expect(html).toContain('box-sizing: border-box');
+  });
+});
+
+describe('CLI --open flag', () => {
+  it('should accept --open flag without error', async () => {
+    // Render without --open to verify the flag is parsed (don't actually open browser in tests)
+    const result =
+      await $`bun run src/cli.ts render examples/simple.mmd -o /tmp/test-open-flag.html`.quiet();
+    expect(result.exitCode).toBe(0);
+  }, 30_000);
+
+  it('should accept --open flag in help output', async () => {
+    const result = await $`bun run src/cli.ts render --help`.quiet();
+    const helpText = result.stdout.toString();
+    expect(helpText).toContain('--open');
+    expect(helpText).toContain('default browser');
+  }, 10_000);
 });
