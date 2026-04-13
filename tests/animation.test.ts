@@ -58,10 +58,10 @@ describe('generateAnimationScript', () => {
 
 describe('Animation integration', () => {
   beforeAll(async () => {
-    await $`bun run src/cli.ts render examples/simple.mmd -o /tmp/test-anim-simple.html`.quiet();
-    await $`bun run src/cli.ts render examples/branching.mmd -o /tmp/test-anim-branch.html`.quiet();
-    await $`bun run src/cli.ts render examples/microservice.mmd -o /tmp/test-anim-micro.html`.quiet();
-    await $`bun run src/cli.ts render examples/cicd.mmd -o /tmp/test-anim-cicd.html`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-simple.mmd -o /tmp/test-anim-simple.html`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-branching.mmd -o /tmp/test-anim-branch.html`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-microservice.mmd -o /tmp/test-anim-micro.html`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-cicd.mmd -o /tmp/test-anim-cicd.html`.quiet();
   }, 120_000);
 
   it('should contain sequence JSON data', async () => {
