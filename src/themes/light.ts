@@ -1,17 +1,19 @@
 export const lightTheme = {
-  background: '#ffffff',
-  foreground: '#1a1a1a',
-  accent: '#4a90d9',
-  highlight: '#f0f4f8',
-  border: '#d1d5db',
-  text: '#1a1a1a',
-  nodeFill: '#f0f4f8',
-  nodeStroke: '#d1d5db',
-  edgeStroke: '#4a90d9',
+  background: '#F8F6FF',
+  foreground: '#1a1a2e',
+  accent: '#6C5CE7',
+  highlight: '#EDE9FE',
+  border: '#6C5CE7',
+  text: '#1a1a2e',
+  nodeFill: '#EDE9FE',
+  nodeStroke: '#6C5CE7',
+  edgeStroke: '#E84393',
   css: `
-    body {
-      background-color: #ffffff;
-      color: #1a1a1a;
+    body.soom-light {
+      background-color: #F8F6FF;
+      background-image: radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px);
+      background-size: 24px 24px;
+      color: #1a1a2e;
       margin: 0;
       padding: 2rem;
       display: flex;
@@ -21,18 +23,33 @@ export const lightTheme = {
       box-sizing: border-box;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-    .diagram-container {
+    body.soom-light .diagram-container {
       width: 100%;
       max-width: 100%;
       max-height: 90vh;
     }
-    .diagram-container svg {
+    body.soom-light .diagram-container svg {
       width: 100%;
       height: auto;
       display: block;
       margin: 0 auto;
     }
-    .soom-watermark {
+    /* Node shadows */
+    body.soom-light .node rect,
+    body.soom-light .node polygon,
+    body.soom-light .node circle {
+      filter: drop-shadow(2px 4px 8px rgba(0, 0, 0, 0.12));
+    }
+    /* Edge shadows */
+    body.soom-light .edgePath path,
+    body.soom-light .flowchart-link {
+      filter: drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.1));
+    }
+    /* Subgraph hierarchy */
+    body.soom-light .cluster rect { stroke-dasharray: 8 4; stroke-width: 2px; }
+    body.soom-light .cluster .cluster rect { stroke-dasharray: 2 4; stroke-width: 1.5px; }
+    /* Watermark */
+    body.soom-light .soom-watermark {
       position: fixed;
       bottom: 12px;
       left: 50%;
@@ -42,34 +59,40 @@ export const lightTheme = {
       width: 408px;
       height: 61px;
     }
-    .soom-wm-svg {
+    body.soom-light .soom-wm-svg {
       width: 100%;
       height: 100%;
       overflow: visible;
     }
-    .soom-wm-char {
+    body.soom-light .soom-wm-char {
       fill: none;
-      stroke: #2563eb;
+      stroke: #6C5CE7;
       stroke-width: 2;
     }
     /* Animation states */
-    .node { transition: opacity 300ms ease-in-out, filter 300ms ease-in-out; }
-    .node.soom-node-active rect,
-    .node.soom-node-active polygon,
-    .node.soom-node-active circle { fill: #2563eb; stroke: #2563eb; }
-    .node.soom-node-active { filter: url(#soom-glow); opacity: 1; }
-    .node.soom-node-completed rect,
-    .node.soom-node-completed polygon,
-    .node.soom-node-completed circle { fill: #93c5fd; stroke: #93c5fd; }
-    .node.soom-node-completed { opacity: 0.8; }
-    .edgePath path { transition: stroke 300ms ease-in-out, opacity 300ms ease-in-out; }
-    #soom-annotations {
+    body.soom-light .node { transition: opacity 300ms ease-in-out, filter 300ms ease-in-out; }
+    body.soom-light .node.soom-node-active rect,
+    body.soom-light .node.soom-node-active polygon,
+    body.soom-light .node.soom-node-active circle { fill: #6C5CE7; stroke: #6C5CE7; filter: drop-shadow(0 0 12px rgba(108, 92, 231, 0.4)); }
+    body.soom-light .node.soom-node-active { opacity: 1; }
+    body.soom-light .node.soom-node-completed rect,
+    body.soom-light .node.soom-node-completed polygon,
+    body.soom-light .node.soom-node-completed circle { fill: #DDD6FE; stroke: #6C5CE7; }
+    body.soom-light .node.soom-node-completed { opacity: 0.85; }
+    body.soom-light .edgePath path,
+    body.soom-light .flowchart-link { transition: stroke 300ms ease-in-out, opacity 300ms ease-in-out; }
+    /* Marching dotted line on completed edges */
+    body.soom-light .soom-edge-completed { stroke-dasharray: 4 8 !important; animation: soom-march 0.8s linear infinite; stroke: #E84393 !important; opacity: 1 !important; }
+    /* Annotation panel */
+    body.soom-light #soom-annotations {
       position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-      background: rgba(255, 255, 255, 0.95); color: #d97706; padding: 12px 24px;
-      border-radius: 8px; font-size: 14px; z-index: 20; border: 1px solid #e5e7eb;
-      transition: opacity 300ms ease; max-width: 600px; text-align: center;
-      opacity: 0;
+      background: rgba(248, 246, 255, 0.95); color: #6C5CE7; padding: 14px 28px;
+      border-radius: 10px; font-size: 18px; z-index: 20;
+      backdrop-filter: blur(8px); border: 1px solid rgba(108, 92, 231, 0.2);
+      transition: opacity 300ms ease; max-width: 650px; text-align: center;
+      opacity: 0; line-height: 1.6;
     }
-    .soom-flow-particle { fill: #2563eb; filter: url(#soom-glow); }
+    /* Flow particle */
+    body.soom-light .soom-flow-particle { fill: #E84393; filter: drop-shadow(0 0 6px rgba(232, 67, 147, 0.4)); }
   `,
 };
