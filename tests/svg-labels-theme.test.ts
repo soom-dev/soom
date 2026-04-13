@@ -4,11 +4,11 @@ import { $ } from 'bun';
 
 describe('Playwright rendering integration', () => {
   beforeAll(async () => {
-    await $`bun run src/cli.ts render examples/simple.mmd -o /tmp/test-pw-dark.html`.quiet();
-    await $`bun run src/cli.ts render examples/simple.mmd -o /tmp/test-pw-light.html -t light`.quiet();
-    await $`bun run src/cli.ts render examples/branching.mmd -o /tmp/test-pw-branch.html`.quiet();
-    await $`bun run src/cli.ts render examples/microservice.mmd -o /tmp/test-pw-micro.html`.quiet();
-    await $`bun run src/cli.ts render examples/cicd.mmd -o /tmp/test-pw-cicd.html`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-simple.mmd -o /tmp/test-pw-dark.html`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-simple.mmd -o /tmp/test-pw-light.html -t light`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-branching.mmd -o /tmp/test-pw-branch.html`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-microservice.mmd -o /tmp/test-pw-micro.html`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-cicd.mmd -o /tmp/test-pw-cicd.html`.quiet();
   }, 60_000);
 
   it('should render dark theme without light default fills (#ECECFF)', async () => {
@@ -102,7 +102,7 @@ describe('CLI --open flag', () => {
   it('should accept --open flag without error', async () => {
     // Render without --open to verify the flag is parsed (don't actually open browser in tests)
     const result =
-      await $`bun run src/cli.ts render examples/simple.mmd -o /tmp/test-open-flag.html`.quiet();
+      await $`bun run src/cli.ts render examples/basic/flow-simple.mmd -o /tmp/test-open-flag.html`.quiet();
     expect(result.exitCode).toBe(0);
   }, 30_000);
 

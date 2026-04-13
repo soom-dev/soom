@@ -1,0 +1,43 @@
+flowchart TB
+    User[User / Driver Browser]
+
+    User -->|HTTPS| CloudFront
+    CloudFront --> S3[S3 React SPA]
+    CloudFront -->|API Requests| ALB[Application Load Balancer]
+
+    subgraph AWS_EKS[AWS EKS Cluster]
+        ALB --> Ingress[Ingress Controller]
+
+        subgraph Backend[Backend Services]
+            Auth[Auth Service]
+            UserSvc[User Service]
+            DriverSvc[Driver Service]
+            RideSvc[Ride Service]
+            PaymentSvc[Payment Service]
+        end
+
+        Ingress --> Auth
+        Ingress --> UserSvc
+        Ingress --> DriverSvc
+        Ingress --> RideSvc
+        Ingress --> PaymentSvc
+    end
+
+    Auth --> MySQL[(MySQL)]
+    UserSvc --> MySQL
+    DriverSvc --> MySQL
+    RideSvc --> MySQL
+    PaymentSvc --> MySQL
+
+    Auth --> Redis[(Redis)]
+    RideSvc --> Redis
+    DriverSvc --> Redis
+
+    subgraph CICD[CI / CD]
+        GitHub[GitHub Repository]
+        GHA[GitHub Actions]
+    end
+
+    GitHub --> GHA
+    GHA -->|Build & Deploy| AWS_EKS
+    GHA -->|Build & Upload| S3

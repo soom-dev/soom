@@ -183,12 +183,28 @@ async function loadAnimeJs(): Promise<string> {
   return readFile(bundlePath, 'utf-8');
 }
 
-export async function renderHtml(svg: string, theme: ThemeName = 'dark'): Promise<string> {
+interface AnimationData {
+  sequenceJson: string;
+  animationScript: string;
+}
+
+export async function renderHtml(
+  svg: string,
+  theme: ThemeName = 'dark',
+  animation?: AnimationData
+): Promise<string> {
   const themeConfig = theme === 'light' ? lightTheme : darkTheme;
   const cleanSvg = await sanitizeSvg(svg);
   const watermarkSvg = buildWatermarkSvg();
   const animeJs = await loadAnimeJs();
   const watermarkScript = buildWatermarkScript();
+
+  const animationHtml = animation
+    ? `
+  <div id="soom-annotations"></div>
+  <script id="soom-sequence" type="application/json">${animation.sequenceJson}</script>
+  <script>${animation.animationScript}</script>`
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -207,7 +223,7 @@ export async function renderHtml(svg: string, theme: ThemeName = 'dark'): Promis
   </div>
   ${watermarkSvg}
   <script>${animeJs}</script>
-  <script>${watermarkScript}</script>
+  <script>${watermarkScript}</script>${animationHtml}
 </body>
 </html>`;
 }

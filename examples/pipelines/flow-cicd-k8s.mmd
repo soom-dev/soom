@@ -1,0 +1,26 @@
+graph LR
+    subgraph Development
+        DEV[Developer] --> GIT[Git Push]
+    end
+
+    subgraph CI_CD_Pipeline["CI/CD Pipeline"]
+        GIT --> GHA[GitHub Actions]
+        GHA --> TEST[Run Tests]
+        TEST --> BUILD[Build Docker Images]
+        BUILD --> SCAN[Security Scan]
+        SCAN --> PUSH[Push to Registry]
+    end
+
+    subgraph Deployment
+        PUSH --> ARGO[Argo CD]
+        ARGO --> K8S[Kubernetes Cluster]
+        K8S --> HELM[Helm Charts]
+        HELM --> PODS[Deploy Pods]
+    end
+
+    subgraph Infrastructure
+        TERRA[Terraform] --> CLOUD[Cloud Resources]
+        CLOUD --> K8S
+    end
+
+    PODS --> MON[Monitoring]

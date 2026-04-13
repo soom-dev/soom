@@ -1,0 +1,29 @@
+flowchart TB
+    subgraph AWS[AWS Cloud]
+        subgraph VPC[VPC]
+            subgraph Public[Public Subnet]
+                ALB[Application<br/>Load Balancer]
+                NAT[NAT Gateway]
+            end
+
+            subgraph Private[Private Subnet]
+                ECS[ECS Cluster]
+                RDS[(RDS PostgreSQL)]
+                CACHE[(ElastiCache)]
+            end
+        end
+
+        CF[CloudFront CDN]
+        S3[S3 Bucket]
+        SQS[SQS Queue]
+        LAMBDA[Lambda Functions]
+    end
+
+    USER[Users] --> CF
+    CF --> ALB
+    CF --> S3
+    ALB --> ECS
+    ECS --> RDS
+    ECS --> CACHE
+    ECS --> SQS
+    SQS --> LAMBDA

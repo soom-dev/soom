@@ -52,5 +52,24 @@ export const darkTheme = {
       stroke: #00d4ff;
       stroke-width: 2;
     }
+    /* Animation states */
+    .node { transition: opacity 300ms ease-in-out, filter 300ms ease-in-out; }
+    .node.soom-node-active rect,
+    .node.soom-node-active polygon,
+    .node.soom-node-active circle { fill: #00d4ff; stroke: #00d4ff; }
+    .node.soom-node-active { filter: url(#soom-glow); opacity: 1; }
+    .node.soom-node-completed rect,
+    .node.soom-node-completed polygon,
+    .node.soom-node-completed circle { fill: #4a90d9; stroke: #4a90d9; }
+    .node.soom-node-completed { opacity: 0.8; }
+    .edgePath path { transition: stroke 300ms ease-in-out, opacity 300ms ease-in-out; }
+    #soom-annotations {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: rgba(26, 26, 46, 0.9); color: #ffa726; padding: 12px 24px;
+      border-radius: 8px; font-size: 14px; z-index: 20;
+      transition: opacity 300ms ease; max-width: 600px; text-align: center;
+      opacity: 0;
+    }
+    .soom-flow-particle { fill: #00d4ff; filter: url(#soom-glow); }
   `,
 };
