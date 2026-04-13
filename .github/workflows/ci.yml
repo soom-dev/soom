@@ -67,6 +67,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
+      - run: npx playwright install chromium --with-deps
       - run: bun test
 
   build:
@@ -79,6 +80,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
+      - run: npx playwright install chromium --with-deps
       - run: bun run build
       - name: Smoke test (node)
         run: |
