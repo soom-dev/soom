@@ -1,0 +1,33 @@
+flowchart TB
+    subgraph Git_Repos["Git Repositories"]
+        AppRepo[Application Repo<br/>Source Code]
+        ConfigRepo[Config Repo<br/>Kubernetes Manifests]
+    end
+
+    subgraph CI_Pipeline["CI Pipeline"]
+        CI[CI System<br/>Build & Test]
+        Registry[Container Registry]
+    end
+
+    subgraph K8s_Cluster["Kubernetes Cluster"]
+        subgraph ArgoCD_NS["argocd namespace"]
+            ArgoCDServer[ArgoCD Server<br/>API & UI]
+            RepoServer[Repo Server<br/>Git Operations]
+            AppController[Application Controller<br/>Sync Engine]
+            RedisCache[Redis Cache]
+        end
+
+        subgraph App_NS["Application Namespaces"]
+            ProdNS[production]
+            StageNS[staging]
+        end
+    end
+
+    AppRepo -->|Push| CI
+    CI -->|Build Image| Registry
+    CI -->|Update Image Tag| ConfigRepo
+    ConfigRepo -->|Pull| RepoServer
+    RepoServer --> AppController
+    AppController -->|Deploy| ProdNS
+    AppController -->|Deploy| StageNS
+    ArgoCDServer --> AppController

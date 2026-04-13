@@ -1,0 +1,41 @@
+graph TB
+    subgraph Batch["Batch Processing"]
+        BS[Batch Source<br/>MySQL, Files, User Interaction]
+        AD[Airflow Batch DAG<br/>Extracts, Validates, Uploads]
+        SB[Spark Batch Job<br/>Transforms, Cleans, Enriches]
+        PDS[Processed Data Store<br/>PostgreSQL, MongoDB, S3]
+        CI[Cache & Indexing<br/>Elasticsearch, Redis]
+
+        BS -->|Extract/Validate| AD
+        AD -->|spark-submit| SB
+        SB -->|Load/Analyze| PDS
+        PDS -->|Query/Analyze| CI
+    end
+
+    subgraph Stream["Streaming Processing"]
+        SS[Streaming Source<br/>Kafka]
+        SSJ[Spark Streaming Job<br/>Filters, Detects Anomalies]
+
+        SS --> SSJ
+    end
+
+    subgraph Monitor["Monitoring & Governance"]
+        MG[Monitoring & Data Governance<br/>Prometheus, Grafana, Atlas]
+    end
+
+    subgraph ML["AI/ML Serving"]
+        MLS[AI/ML Serving<br/>Feature Store, MLflow, Dashboards]
+    end
+
+    subgraph CICD["CI/CD & Infrastructure"]
+        CIP[CI/CD Pipelines<br/>GitHub Actions, Terraform]
+        K8S[Kubernetes Cluster<br/>Argo CD, Helm Charts]
+    end
+
+    SSJ --> PDS
+    MG -.monitors.-> Batch
+    MG -.monitors.-> Stream
+    ML -.uses.-> PDS
+    CIP --> K8S
+    K8S -.orchestrates.-> Batch
+    K8S -.orchestrates.-> Stream

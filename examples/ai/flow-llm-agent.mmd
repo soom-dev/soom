@@ -1,0 +1,23 @@
+flowchart TD
+    Start([User Input]) --> Router{Intent Router}
+    Router -->|search needed| ToolSelect[Tool Selection]
+    Router -->|direct answer| Memory[Check Memory]
+
+    ToolSelect --> Search[Web Search]
+    ToolSelect --> DB[Database Query]
+    ToolSelect --> Calc[Calculator]
+
+    Search --> Validate{Result Valid?}
+    DB --> Validate
+    Calc --> Validate
+
+    Validate -->|yes| Memory
+    Validate -->|no| Retry{Retry Count}
+    Retry -->|< 3| ToolSelect
+    Retry -->|>= 3| Fallback[Fallback Response]
+
+    Memory --> Context[Build Context]
+    Fallback --> Context
+    Context --> LLM[LLM Generation]
+    LLM --> Update[Update Memory]
+    Update --> End([Response])
