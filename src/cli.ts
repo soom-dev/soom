@@ -17,11 +17,13 @@ program
   .argument('<input>', 'input Mermaid file (.mmd or .mermaid)')
   .option('-o, --output <path>', 'output HTML file path')
   .option('-t, --theme <theme>', 'color theme (dark or light)', 'dark')
-  .action(async (input: string, options: { output?: string; theme?: string }) => {
+  .option('--open', 'open the output file in the default browser', false)
+  .action(async (input: string, options: { output?: string; theme?: string; open?: boolean }) => {
     try {
       await renderCommand(input, {
         output: options.output,
         theme: (options.theme as 'dark' | 'light') ?? 'dark',
+        open: options.open,
       });
     } catch (err) {
       console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
