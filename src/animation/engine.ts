@@ -98,6 +98,8 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
 
   function setAnnotation(step) {
     if (!annotEl) return;
+    // Clear previous content
+    while (annotEl.firstChild) annotEl.removeChild(annotEl.firstChild);
     var texts = [];
     if (step.activateEdges && step.activateEdges.length > 0) {
       step.activateEdges.forEach(function(eid) {
@@ -115,11 +117,19 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
         if (texts.length === 0) texts.push(label + ' is processing');
       });
     }
+    // Multi-line: each dependency on its own line
     if (step.parallel && texts.length > 1) {
-      annotEl.textContent = 'Simultaneously: ' + texts.join(', ');
-    } else {
-      annotEl.textContent = texts.join(', ');
+      var header = document.createElement('div');
+      header.textContent = 'Simultaneously:';
+      header.style.fontWeight = 'bold';
+      header.style.marginBottom = '4px';
+      annotEl.appendChild(header);
     }
+    texts.forEach(function(t) {
+      var div = document.createElement('div');
+      div.textContent = t;
+      annotEl.appendChild(div);
+    });
     annotEl.style.opacity = '1';
   }
 
@@ -166,6 +176,7 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     });
     Object.keys(edgeMap).forEach(function(eid) {
       var p = edgeMap[eid].path;
+      p.classList.remove('soom-edge-completed');
       var len = p.getTotalLength ? p.getTotalLength() : 300;
       p.style.strokeDasharray = len;
       p.style.strokeDashoffset = len;
@@ -222,10 +233,14 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
 
   function playStep(stepIdx, onDone) {
     if (stepIdx >= steps.length) {
-      if (annotEl) {
-        annotEl.textContent = 'Animation complete';
-        setTimeout(function() { annotEl.style.opacity = '0.5'; }, 2000);
-      }
+      // Loop: reset and replay after 2s pause
+      if (annotEl) { while (annotEl.firstChild) annotEl.removeChild(annotEl.firstChild); annotEl.style.opacity = '0'; }
+      setTimeout(function() {
+        applyStepState(0);
+        currentStepIndex = -1;
+        activeAnimations = [];
+        startSequence();
+      }, 2000);
       return;
     }
     currentStepIndex = stepIdx;
@@ -239,13 +254,33 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     function checkDone() {
       pending--;
       if (pending <= 0 && !paused) {
-        // Transition all nodes activated in this step to completed
+        // Transition all nodes activated in this step to completed with glow pulse
         var toComplete = (step.activateNodes || []).concat(activatedThisStep);
         toComplete.forEach(function(nid) {
           if (nodeMap[nid]) {
             nodeMap[nid].classList.remove('soom-node-active');
             nodeMap[nid].classList.add('soom-node-completed');
-            nodeMap[nid].style.opacity = '0.8';
+            nodeMap[nid].style.opacity = '0.85';
+            // Glow pulse on completed node shape
+            var shape = nodeMap[nid].querySelector('rect, polygon, circle');
+            if (shape) {
+              anime.animate(shape, {
+                filter: ['drop-shadow(0 0 4px currentColor)', 'drop-shadow(0 0 14px currentColor)'],
+                duration: 1500,
+                ease: 'inOutSine',
+                loop: true,
+                alternate: true,
+              });
+            }
+          }
+        });
+        // Add marching dotted line to completed edges
+        if (step.activateEdges) step.activateEdges.forEach(function(eid) {
+          var edge = resolveEdge(eid);
+          if (edge) {
+            edge.path.style.strokeDasharray = '';
+            edge.path.style.strokeDashoffset = '';
+            edge.path.classList.add('soom-edge-completed');
           }
         });
         setTimeout(function() { if (!paused && onDone) onDone(); }, 200);

@@ -11,16 +11,16 @@ describe('Playwright rendering integration', () => {
     await $`bun run src/cli.ts render examples/basic/flow-cicd.mmd -o /tmp/test-pw-cicd.html`.quiet();
   }, 60_000);
 
-  it('should render dark theme without light default fills (#ECECFF)', async () => {
+  it('should render dark theme with soom-dark default class', async () => {
     const html = await readFile('/tmp/test-pw-dark.html', 'utf-8');
-    expect(html).not.toContain('#ECECFF');
-    expect(html).toContain('#1a1a2e');
+    expect(html).toContain('class="soom-dark"');
+    expect(html).toContain('#362F49');
   });
 
-  it('should render light theme with light background', async () => {
+  it('should render light theme with soom-light default class', async () => {
     const html = await readFile('/tmp/test-pw-light.html', 'utf-8');
-    expect(html).toContain('#ffffff');
-    expect(html).not.toContain('#1a1a2e');
+    expect(html).toContain('class="soom-light"');
+    expect(html).toContain('#F8F6FF');
   });
 
   it('should produce SVG with properly-sized foreignObject elements', async () => {
