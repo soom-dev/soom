@@ -1,0 +1,25 @@
+flowchart TD
+    subgraph Client_Application [Document Processing Pipeline]
+        A[Input Document PDF] --> B[Docling DocumentConverter]
+        B --> C{Parser Backend Selection}
+        C -- PDF/Image --> D[OCR Engine EasyOCR]
+        C -- Layout Analysis --> E[Layout Model]
+        C -- Table Recognition --> F[TableFormer Model]
+        D & E & F --> G[Structured Document Object]
+        G --> H[Iterate Document Elements]
+        H --> I{Text or Table Item?}
+        I -- Yes --> J[Call Translate Function]
+        J --> K[Ollama Client]
+        K -- REST API --> L[Ollama Server]
+        L -- Loads --> M[Granite3 Dense LLM]
+        M -- Translated Text --> K
+        K --> J
+        J --> N[Update Document Object]
+        N --> H
+        H -- No More Elements --> O[Save as Markdown]
+        O --> P[Translated Markdown Output]
+    end
+
+    subgraph Ollama_Service [LLM Service]
+        L --- M
+    end

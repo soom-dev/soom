@@ -1,0 +1,11 @@
+graph LR
+    User[User Browser] --> CDN[CDN Edge]
+    CDN --> LB[Load Balancer]
+    LB --> API[API Gateway]
+    LB --> Auth[Auth Service]
+    Auth --> API
+    API --> DB[(Database)]
+    API --> Cache[(Redis Cache)]
+    API --> Queue[Message Queue]
+    Queue --> Worker[Background Worker]
+    Worker --> DB

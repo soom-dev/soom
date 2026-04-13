@@ -1,0 +1,17 @@
+graph TB
+    Query[User Query] --> Rewrite[Query Rewriter]
+    Rewrite --> Parallel{Parallel Search}
+
+    Parallel --> Dense[Dense Retrieval<br/>Vector DB]
+    Parallel --> Sparse[Sparse Retrieval<br/>BM25 Keyword]
+
+    Dense --> Fusion[Reciprocal Rank Fusion]
+    Sparse --> Fusion
+
+    Fusion --> Rerank[Cross-Encoder Reranking]
+    Rerank --> Filter[Context Window Filter]
+
+    Filter --> Prompt[Prompt Construction]
+    Prompt --> LLM[LLM Generation]
+    LLM --> Cite[Citation Extraction]
+    Cite --> Response[Final Response]

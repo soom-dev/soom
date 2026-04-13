@@ -1,0 +1,43 @@
+flowchart TB
+    subgraph Client["Client Layer"]
+        WEB[Web App]
+        MOB[Mobile App]
+    end
+
+    subgraph Gateway["API Gateway"]
+        GW[Kong/Nginx]
+        AUTH[Auth Middleware]
+    end
+
+    subgraph Services["Microservices"]
+        US[User Service]
+        OS[Order Service]
+        PS[Product Service]
+        NS[Notification Service]
+    end
+
+    subgraph Data["Data Layer"]
+        PG[(PostgreSQL)]
+        REDIS[(Redis)]
+        ES[(Elasticsearch)]
+    end
+
+    subgraph Queue["Message Queue"]
+        KAFKA[Kafka]
+    end
+
+    WEB --> GW
+    MOB --> GW
+    GW --> AUTH
+    AUTH --> US
+    AUTH --> OS
+    AUTH --> PS
+
+    US --> PG
+    OS --> PG
+    PS --> PG
+    PS --> ES
+
+    US --> REDIS
+    OS --> KAFKA
+    KAFKA --> NS

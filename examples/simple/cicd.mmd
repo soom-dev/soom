@@ -1,0 +1,10 @@
+graph LR
+    Commit[Git Push] --> Lint[Lint]
+    Lint --> Test[Test]
+    Test --> Build[Build]
+    Build --> Scan[Security Scan]
+    Scan --> Stage[Deploy Staging]
+    Stage --> Smoke[Smoke Tests]
+    Smoke --> Approve{Manual Approve}
+    Approve -->|Yes| Prod[Deploy Production]
+    Approve -->|No| Rollback[Rollback]
