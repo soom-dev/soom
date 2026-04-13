@@ -48,19 +48,17 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     nodeMap[nodeId] = el;
   });
 
-  // Parse edge elements
-  svgEl.querySelectorAll('.edgePath').forEach(function(el) {
-    var rawId = el.getAttribute('id') || '';
-    var path = el.querySelector('path');
-    if (!path) return;
-    // Extract source_target from ID pattern: L_Source_Target_0 or L-Source-Target-0
+  // Parse edge elements — Mermaid renders edges as <path class="flowchart-link">
+  // or inside <g class="edgePath"> groups depending on the rendering context.
+  // Try both: direct path elements and edgePath groups.
+  svgEl.querySelectorAll('path.flowchart-link, .edgePath path').forEach(function(pathEl) {
+    var rawId = pathEl.getAttribute('id') || pathEl.parentElement.getAttribute('id') || '';
     var edgeMatch = rawId.match(/L[-_](.+?)[-_](.+?)[-_]\\d+$/);
-    var edgeId = rawId;
-    if (edgeMatch) {
-      edgeId = 'edge-' + edgeMatch[1] + '-' + edgeMatch[2];
-    }
-    el.setAttribute('data-edge-id', edgeId);
-    edgeMap[edgeId] = { group: el, path: path };
+    if (!edgeMatch) return;
+    var source = edgeMatch[1];
+    var target = edgeMatch[2];
+    var edgeId = 'edge-' + source + '-' + target;
+    edgeMap[edgeId] = { group: pathEl.parentElement || pathEl, path: pathEl };
   });
 
   // Build a flexible edge lookup that matches by source-target substring
