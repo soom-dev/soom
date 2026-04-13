@@ -66,10 +66,11 @@ describe('Playwright rendering integration', () => {
     }
   });
 
-  it('should produce self-contained HTML', async () => {
+  it('should produce self-contained HTML (no external resources)', async () => {
     const html = await readFile('/tmp/test-pw-dark.html', 'utf-8');
-    expect(html).not.toMatch(/href="https?:\/\//);
+    // Watermark <a> link to hansoom.dev is intentional navigation, not a resource
     expect(html).not.toMatch(/src="https?:\/\//);
+    expect(html).not.toMatch(/<link[^>]*href="https?:\/\//);
   });
 
   it('should have arrow markers on edges', async () => {
@@ -78,10 +79,11 @@ describe('Playwright rendering integration', () => {
     expect(markerEnds).toBeGreaterThanOrEqual(8);
   });
 
-  it('should have responsive CSS (no min-height:100vh with align-items:center)', async () => {
+  it('should center diagram vertically and horizontally', async () => {
     const html = await readFile('/tmp/test-pw-dark.html', 'utf-8');
-    const hasVertCenter = html.includes('align-items: center') && html.includes('min-height: 100vh');
-    expect(hasVertCenter).toBe(false);
+    expect(html).toContain('align-items: center');
+    expect(html).toContain('min-height: 100vh');
+    expect(html).toContain('justify-content: center');
   });
 
   it('should set SVG width to 100% in CSS', async () => {
