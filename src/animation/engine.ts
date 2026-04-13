@@ -86,6 +86,11 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     p.style.strokeDasharray = len;
     p.style.strokeDashoffset = len;
     p.style.opacity = '0.2';
+    // Hide arrow markers until the edge draws — save originals for restoration
+    p._origMarkerEnd = p.getAttribute('marker-end') || '';
+    p._origMarkerStart = p.getAttribute('marker-start') || '';
+    p.style.markerEnd = 'none';
+    p.style.markerStart = 'none';
   });
 
   // ---- 4. Annotation panel ----
@@ -165,6 +170,8 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
       p.style.strokeDasharray = len;
       p.style.strokeDashoffset = len;
       p.style.opacity = '0.2';
+      p.style.markerEnd = 'none';
+      p.style.markerStart = 'none';
     });
 
     // Apply completed states for all steps before stepIdx
@@ -183,6 +190,8 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
         if (found) {
           found.path.style.strokeDashoffset = '0';
           found.path.style.opacity = '1';
+          if (found.path._origMarkerEnd) found.path.style.markerEnd = found.path._origMarkerEnd;
+          if (found.path._origMarkerStart) found.path.style.markerStart = found.path._origMarkerStart;
         }
       });
       if (s.activateNodes) s.activateNodes.forEach(function(nid) {
@@ -226,11 +235,13 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     setAnnotation(step);
 
     var pending = 0;
+    var activatedThisStep = []; // track all nodes activated (explicit + edge targets)
     function checkDone() {
       pending--;
       if (pending <= 0 && !paused) {
-        // Transition active nodes to completed
-        if (step.activateNodes) step.activateNodes.forEach(function(nid) {
+        // Transition all nodes activated in this step to completed
+        var toComplete = (step.activateNodes || []).concat(activatedThisStep);
+        toComplete.forEach(function(nid) {
           if (nodeMap[nid]) {
             nodeMap[nid].classList.remove('soom-node-active');
             nodeMap[nid].classList.add('soom-node-completed');
@@ -249,13 +260,17 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
       }
     });
 
-    // Animate edges
+    // Animate edges — when an edge draws to a target, activate the target node
     if (step.activateEdges && step.activateEdges.length > 0) {
       step.activateEdges.forEach(function(eid) {
         var edge = resolveEdge(eid);
         if (!edge) return;
         var pathEl = edge.path;
         var len = pathEl.getTotalLength ? pathEl.getTotalLength() : 300;
+
+        // Resolve the target node for this edge
+        var info = EDGE_INFO[eid];
+        var targetNodeId = info ? info.target : null;
 
         pending++;
         pathEl.style.opacity = '1';
@@ -265,7 +280,18 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
           strokeDashoffset: [len, 0],
           duration: duration,
           ease: 'inOutQuad',
-          onComplete: checkDone,
+          onComplete: function() {
+            // Restore arrow markers now that the edge is fully drawn
+            if (pathEl._origMarkerEnd) pathEl.style.markerEnd = pathEl._origMarkerEnd;
+            if (pathEl._origMarkerStart) pathEl.style.markerStart = pathEl._origMarkerStart;
+            // Activate target node when the edge finishes drawing to it
+            if (targetNodeId && nodeMap[targetNodeId]) {
+              nodeMap[targetNodeId].style.opacity = '1';
+              nodeMap[targetNodeId].classList.add('soom-node-active');
+              activatedThisStep.push(targetNodeId);
+            }
+            checkDone();
+          },
         });
         activeAnimations.push(anim);
 
