@@ -70,7 +70,6 @@ export const lightTheme = {
       stroke-width: 2;
     }
     /* Animation states */
-    body.soom-light .node { transition: opacity 300ms ease-in-out, filter 300ms ease-in-out; }
     body.soom-light .node.soom-node-active rect,
     body.soom-light .node.soom-node-active polygon,
     body.soom-light .node.soom-node-active circle { fill: #6C5CE7; stroke: #6C5CE7; filter: drop-shadow(0 0 12px rgba(108, 92, 231, 0.4)); }
@@ -79,10 +78,8 @@ export const lightTheme = {
     body.soom-light .node.soom-node-completed polygon,
     body.soom-light .node.soom-node-completed circle { fill: #DDD6FE; stroke: #6C5CE7; }
     body.soom-light .node.soom-node-completed { opacity: 0.85; }
-    body.soom-light .edgePath path,
-    body.soom-light .flowchart-link { transition: stroke 300ms ease-in-out, opacity 300ms ease-in-out; }
-    /* Marching dotted line on completed edges */
-    body.soom-light .soom-edge-completed { stroke-dasharray: 4 8 !important; animation: soom-march 0.8s linear infinite; stroke: #E84393 !important; opacity: 1 !important; }
+    /* Completed edge base style (marching animation driven by anime.js) */
+    body.soom-light .soom-edge-completed { stroke: #E84393; opacity: 1; }
     /* Annotation panel */
     body.soom-light #soom-annotations {
       position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
