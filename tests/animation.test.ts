@@ -52,16 +52,12 @@ describe('generateAnimationScript', () => {
   it('should use anime.js createTimeline API', () => {
     const script = generateAnimationScript(sequence, graph);
     expect(script).toContain('createTimeline');
-    expect(script).toContain('strokeDashoffset');
+    expect(script).toContain("label('step-");
   });
 
-  it('should expose timeline object on soomAnimation', () => {
+  it('should expose timeline object and progress getter', () => {
     const script = generateAnimationScript(sequence, graph);
     expect(script).toContain('timeline: timeline');
-  });
-
-  it('should expose progress getter', () => {
-    const script = generateAnimationScript(sequence, graph);
     expect(script).toContain('get progress');
     expect(script).toContain('timeline.progress');
   });
@@ -71,14 +67,44 @@ describe('generateAnimationScript', () => {
     expect(script).toContain('playbackRate');
   });
 
-  it('should use timeline.seek for goToStep', () => {
+  it('should use svg.createDrawable for edge draw', () => {
     const script = generateAnimationScript(sequence, graph);
-    expect(script).toContain('timeline.seek');
+    expect(script).toContain('createDrawable');
+    expect(script).toContain("draw: '0 1'");
   });
 
-  it('should use timeline labels for step boundaries', () => {
+  it('should attempt svg.createMotionPath for particles', () => {
     const script = generateAnimationScript(sequence, graph);
-    expect(script).toContain("label('step-");
+    expect(script).toContain('createMotionPath');
+  });
+
+  it('should use createAnimatable for annotation opacity', () => {
+    const script = generateAnimationScript(sequence, graph);
+    expect(script).toContain('createAnimatable');
+  });
+
+  it('should use utils.set for initial state', () => {
+    const script = generateAnimationScript(sequence, graph);
+    expect(script).toContain('utils.set');
+  });
+
+  it('should not contain manual getTotalLength for initial edge setup', () => {
+    const script = generateAnimationScript(sequence, graph);
+    // createDrawable handles this — no manual edgeLengths map
+    expect(script).not.toContain('edgeLengths');
+  });
+
+  it('should use anime.animate for marching lines instead of CSS @keyframes', () => {
+    const script = generateAnimationScript(sequence, graph);
+    expect(script).toContain('startMarchingLine');
+    expect(script).not.toContain('@keyframes');
+  });
+
+  it('should have node opacity as timeline segments', () => {
+    const script = generateAnimationScript(sequence, graph);
+    // Node opacity animated via timeline.add with from/to values
+    expect(script).toContain('opacity: [fromOpacity, 1]');
+    expect(script).toContain('opacity: [1, 0.85]');
   });
 });
 
@@ -117,15 +143,14 @@ describe('Animation integration', () => {
     expect(html).toContain('soom-flow-particle');
   });
 
-  it('should use createTimeline in rendered output', async () => {
+  it('should use createDrawable in rendered output', async () => {
     const html = await readFile('/tmp/test-anim-simple.html', 'utf-8');
-    expect(html).toContain('createTimeline');
+    expect(html).toContain('createDrawable');
   });
 
-  it('should expose timeline and progress in rendered output', async () => {
+  it('should not contain @keyframes soom-march in rendered output', async () => {
     const html = await readFile('/tmp/test-anim-simple.html', 'utf-8');
-    expect(html).toContain('timeline: timeline');
-    expect(html).toContain('get progress');
+    expect(html).not.toContain('@keyframes soom-march');
   });
 
   it('should render all four examples without errors', async () => {
@@ -135,6 +160,7 @@ describe('Animation integration', () => {
       expect(html).toContain('soom-sequence');
       expect(html).toContain('soom-glow');
       expect(html).toContain('createTimeline');
+      expect(html).toContain('createDrawable');
     }
   });
 
