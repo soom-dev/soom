@@ -70,7 +70,6 @@ export const darkTheme = {
       stroke-width: 2;
     }
     /* Animation states */
-    body.soom-dark .node { transition: opacity 300ms ease-in-out, filter 300ms ease-in-out; }
     body.soom-dark .node.soom-node-active rect,
     body.soom-dark .node.soom-node-active polygon,
     body.soom-dark .node.soom-node-active circle { fill: #2FD9D4; stroke: #2FD9D4; filter: drop-shadow(0 0 12px rgba(47, 217, 212, 0.6)); }
@@ -79,11 +78,8 @@ export const darkTheme = {
     body.soom-dark .node.soom-node-completed polygon,
     body.soom-dark .node.soom-node-completed circle { fill: #3A5A7C; stroke: #2FD9D4; }
     body.soom-dark .node.soom-node-completed { opacity: 0.85; }
-    body.soom-dark .edgePath path,
-    body.soom-dark .flowchart-link { transition: stroke 300ms ease-in-out, opacity 300ms ease-in-out; }
-    /* Marching dotted line on completed edges */
-    body.soom-dark .soom-edge-completed { stroke-dasharray: 4 8 !important; animation: soom-march 0.8s linear infinite; stroke: #FD58D1 !important; opacity: 1 !important; }
-    @keyframes soom-march { to { stroke-dashoffset: -12; } }
+    /* Completed edge base style (marching animation driven by anime.js) */
+    body.soom-dark .soom-edge-completed { stroke: #FD58D1; opacity: 1; }
     /* Annotation panel */
     body.soom-dark #soom-annotations {
       position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
