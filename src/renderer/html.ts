@@ -1,3 +1,4 @@
+import { baseCss } from '../themes/base.js';
 import { darkTheme } from '../themes/dark.js';
 import { lightTheme } from '../themes/light.js';
 import { buildWatermarkSvg } from '../watermark/svg.js';
@@ -41,6 +42,7 @@ export async function renderHtml(
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:;">
   <title>Hansoom Diagram</title>
   <style>
+    ${baseCss}
     ${darkTheme.css}
     ${lightTheme.css}
     ${toggleCss}
