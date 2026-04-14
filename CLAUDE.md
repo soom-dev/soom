@@ -200,15 +200,19 @@ _Full learnings archive: `~/Documents/ObsidianVault/hansoom/docs/technical_learn
 
 **Graph extraction from SVG IDs — don't need the parser.** Mermaid encodes names in SVG element IDs (`flowchart-Name-N`, `L_Source_Target_0`). Regex extraction is sufficient for the sequencer.
 
-**Edge draw: stroke-dashoffset needs getTotalLength() at runtime.** Path lengths aren't available at build time. Set `stroke-dasharray` and `stroke-dashoffset` to `getTotalLength()` at init, animate offset to 0.
+**svg.createDrawable() replaces manual strokeDash setup.** `anime.svg.createDrawable(pathEl)` returns a Proxy that sets `pathLength="1000"` and auto-manages strokeDasharray/strokeDashoffset. `draw: '0 1'` reveals the stroke. Uses SVG attributes (not inline styles) — clear inline stroke styles in resetPersistentEffects so the drawable can take control on loop restart.
 
-**Flow particles on timeline via proxy objects.** `timeline.add({ t: 0 }, { t: [0, 1], onRender ... })` animates a plain JS object. Read `proxy.t` in `onRender` to compute position via `getPointAtLength(proxy.t * len)`. Replaces manual rAF loops — `timeline.pause()` freezes particles automatically.
+**svg.createMotionPath() coordinate space caveat.** For SVG targets, returns raw path coordinates WITHOUT CTM transformation. If the particle circle is at SVG root and the path is in a nested `<g>`, coordinates may be offset. Works well enough for dagre diagrams. Implementation tries createMotionPath first, falls back to proxy + getPointAtLength.
 
 **timeline.seek() only accepts milliseconds.** Despite labels working in `.add()` offsets, `.seek('step-2')` does NOT work. Use `timeline.seek(timeline.labels['step-2'])` to get the ms value first.
 
 **timeline.call() for state changes, .add() for continuous animation.** Node CSS class toggles (active/completed) work better as `.call()` callbacks. CSS `transition` handles visual smoothing. `.add()` reserved for numeric properties: `strokeDashoffset`, particle position proxies. This keeps theme toggle CSS-driven.
 
 **Persistent animations must live outside the timeline.** Glow pulse and marching dotted lines loop independently and shouldn't rewind on seek. Keep as standalone `anime.animate()` calls, tracked in array for cleanup on loop restart.
+
+**CSS transitions fight anime.js — remove them.** `transition: opacity 300ms` causes double-easing when anime.js also animates opacity. Remove all CSS transition rules for properties anime.js controls.
+
+**createAnimatable() properties are callable functions.** `a.opacity(1)` animates to 1 (setter), `a.opacity()` returns current value (getter). Not simple property assignment — handles interruption automatically.
 
 **Edge ID matching is fuzzy.** Sequencer uses `edge-0`, SVG uses `L_A_B_0`. The engine resolves via: direct match → source/target substring → index fallback.
 
@@ -220,7 +224,7 @@ _Full learnings archive: `~/Documents/ObsidianVault/hansoom/docs/technical_learn
 
 **CSS `currentColor` for theme-adaptive glow.** `filter: drop-shadow(0 0 14px currentColor)` on node shapes inherits the stroke color. Pulse animation works across both themes without hardcoded colors.
 
-**Marching dotted lines are zero-cost CSS.** `stroke-dasharray: 4 8; animation: soom-march 0.8s linear infinite` runs on compositor thread. Scales to 20+ edges with no frame drops.
+**Marching dotted lines now anime.js-driven.** Was CSS `@keyframes soom-march`, now `anime.animate(pathEl, { strokeDashoffset: [0, -12], loop: true })`. Set `stroke-dasharray: 4 8` via `anime.utils.set()` first. Track in array for pause/cleanup.
 
 ### Archived learnings (jsdom + ELK eras — no longer applies)
 
@@ -257,3 +261,8 @@ Delivered: Theme redesign (dark #362F49/#2FD9D4/#FD58D1, light #F8F6FF/#6C5CE7/#
 **PR:** `refactor/animejs-timeline` → `main` (soom-dev/soom#13)
 
 Delivered: Complete engine rewrite from manual callback chains to single anime.js `createTimeline()`. Edge draws + flow particles are timeline segments (pause freezes all), node states via `timeline.call()`. Exposed `soomAnimation.timeline`, `.progress` (0-1), `.playbackRate`. Built-in loop with 3s loopDelay. 45 tests (7 new). Phase 1B playback controls now trivial to wire up.
+
+### Phase 1A Branch 6 — Replace Manual Animation with anime.js Utilities
+**PR:** `refactor/animejs-utilities` → `main` (soom-dev/soom#14)
+
+Delivered: Replaced all remaining manual animation code with anime.js v4 utilities. Edge draw via `svg.createDrawable()` + `draw: '0 1'`, particles via `svg.createMotionPath()` with proxy fallback, node opacity as timeline segments, marching lines via `anime.animate()` (removed CSS `@keyframes`), annotation opacity via `createAnimatable()`, initial state via `utils.set()`. Removed CSS `transition` rules. Simplified seek to CSS-class-only cleanup. 49 tests (4 new).
