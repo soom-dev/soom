@@ -1,29 +1,17 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve, basename, dirname, join } from 'node:path';
-import { execSync } from 'node:child_process';
 import { renderHtml, type ThemeName } from '../renderer/html.js';
 import { generateAnimationScript } from '../animation/engine.js';
 import { autoSequence } from '../sequencer/auto.js';
 import { renderMermaidToSvg } from '../browser/playwright.js';
 import { postProcessSvg } from '../svg/post-process.js';
 import { buildGraphFromSvg } from '../svg/graph-extractor.js';
+import { openInBrowser } from '../utils/browser.js';
 
 interface RenderOptions {
   output?: string;
   theme?: ThemeName;
   open?: boolean;
-}
-
-function openInBrowser(filePath: string) {
-  const cmds: Record<string, string> = {
-    darwin: 'open',
-    linux: 'xdg-open',
-    win32: 'start',
-  };
-  const cmd = cmds[process.platform];
-  if (cmd) {
-    execSync(`${cmd} "${filePath}"`, { stdio: 'ignore' });
-  }
 }
 
 export async function renderCommand(input: string, options: RenderOptions) {
