@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { renderHtml } from '../src/renderer/html.js';
+import { renderHtml } from '../../src/renderer/html.js';
 
 describe('HTML Renderer', () => {
   it('should produce a valid HTML document', async () => {

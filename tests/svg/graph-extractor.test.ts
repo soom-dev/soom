@@ -5,7 +5,7 @@ import type {
   AnimaGraph,
   AnimationStep,
   AnimationSequence,
-} from '../src/graph/types.js';
+} from '../../src/graph/types.js';
 
 describe('Graph Types', () => {
   it('should create a valid GraphNode', () => {
