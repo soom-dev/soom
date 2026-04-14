@@ -2,18 +2,19 @@ import type { AnimationSequence, AnimaGraph } from '../graph/types.js';
 
 /**
  * Generates a runtime JavaScript string that animates a Mermaid SVG diagram
- * using anime.js createTimeline() as the single source of truth for all
- * animation state.
+ * using anime.js createTimeline() and v4 utilities as the single source of
+ * truth for all animation state.
  *
- * The generated script runs in the browser inside the output HTML. It:
- * 1. Discovers SVG structure (nodes, edges, labels) from the Mermaid DOM
- * 2. Reads the embedded AnimationSequence from a JSON script tag
- * 3. Builds a master anime.js timeline with all animation steps
- * 4. Exposes window.soomAnimation API with timeline-based controls
+ * anime.js utilities used:
+ * - createTimeline() — master timeline for sequencing
+ * - svg.createDrawable() — edge draw via `draw` property (replaces manual strokeDash)
+ * - svg.createMotionPath() — flow particles along paths (replaces proxy + getPointAtLength)
+ * - createAnimatable() — reactive annotation opacity
+ * - Node opacity as timeline segments (replaces manual style.opacity)
+ * - anime.animate() for marching lines (replaces CSS @keyframes)
  *
- * Persistent effects (glow pulse, marching dotted lines) run as separate
- * anime.animate() calls outside the timeline since they loop independently
- * and should not rewind on seek.
+ * Persistent effects (glow pulse, marching lines) run as separate
+ * anime.animate() calls outside the timeline.
  */
 export function generateAnimationScript(_sequence: AnimationSequence, _graph: AnimaGraph): string {
   const nodeLabels: Record<string, string> = {};
@@ -76,8 +77,11 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
   var steps = sequence.steps || [];
   if (steps.length === 0) return;
 
-  // ---- 3. Annotation panel ----
+  // ---- 3. Annotation panel (createAnimatable for reactive opacity) ----
   var annotEl = document.getElementById('soom-annotations');
+  var annotAnim = annotEl ? anime.createAnimatable(annotEl, {
+    opacity: { duration: 200, ease: 'outQuad' },
+  }) : null;
 
   function setAnnotation(step) {
     if (!annotEl) return;
@@ -111,7 +115,7 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
       div.textContent = t;
       annotEl.appendChild(div);
     });
-    annotEl.style.opacity = '1';
+    if (annotAnim) annotAnim.opacity(1);
   }
 
   // ---- 4. Edge resolution ----
@@ -130,18 +134,20 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
 
   // ---- 5. Set initial state ----
   var svgNS = 'http://www.w3.org/2000/svg';
-  var edgeLengths = {};
 
+  // Node initial opacity via utils.set
   Object.keys(nodeMap).forEach(function(nid) {
-    nodeMap[nid].style.opacity = '0.4';
+    anime.utils.set(nodeMap[nid], { opacity: 0.4 });
   });
+
+  // Edge initial state via svg.createDrawable — handles strokeDash automatically
+  var drawableMap = {};
   Object.keys(edgeMap).forEach(function(eid) {
     var p = edgeMap[eid].path;
-    var len = p.getTotalLength ? p.getTotalLength() : 300;
-    edgeLengths[eid] = len;
-    p.style.strokeDasharray = len;
-    p.style.strokeDashoffset = len;
-    p.style.opacity = '0.2';
+    var drawables = anime.svg.createDrawable(p);
+    drawableMap[eid] = drawables[0];
+    anime.utils.set(p, { opacity: 0.2 });
+    // Hide arrow markers until edge draws
     p._origMarkerEnd = p.getAttribute('marker-end') || '';
     p._origMarkerStart = p.getAttribute('marker-start') || '';
     p.style.markerEnd = 'none';
@@ -150,8 +156,19 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
 
   // ---- 6. Build master timeline ----
   var glowAnimations = [];
+  var marchAnimations = [];
 
-  function resetState() {
+  function resetPersistentEffects() {
+    glowAnimations.forEach(function(a) { if (a && a.pause) a.pause(); });
+    glowAnimations = [];
+    marchAnimations.forEach(function(a) { if (a && a.pause) a.pause(); });
+    marchAnimations = [];
+    // Clear inline stroke styles that may override drawable attributes
+    Object.keys(edgeMap).forEach(function(eid) {
+      edgeMap[eid].path.style.strokeDasharray = '';
+      edgeMap[eid].path.style.strokeDashoffset = '';
+    });
+    // Remove CSS classes
     Object.keys(nodeMap).forEach(function(nid) {
       nodeMap[nid].classList.remove('soom-node-active', 'soom-node-completed');
     });
@@ -160,11 +177,10 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
       edgeMap[eid].path.style.markerEnd = 'none';
       edgeMap[eid].path.style.markerStart = 'none';
     });
-    glowAnimations.forEach(function(a) { if (a && a.pause) a.pause(); });
-    glowAnimations = [];
+    // Hide annotation
+    if (annotAnim) annotAnim.opacity(0);
     if (annotEl) {
       while (annotEl.firstChild) annotEl.removeChild(annotEl.firstChild);
-      annotEl.style.opacity = '0';
     }
   }
 
@@ -183,7 +199,19 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     }
   }
 
+  function startMarchingLine(pathEl) {
+    anime.utils.set(pathEl, { strokeDasharray: '4 8' });
+    var anim = anime.animate(pathEl, {
+      strokeDashoffset: [0, -12],
+      loop: true,
+      duration: 800,
+      ease: 'linear',
+    });
+    marchAnimations.push(anim);
+  }
+
   var stepOffsets = [];
+  var nodeActivated = {};
   var timeline = anime.createTimeline({
     autoplay: false,
     loop: true,
@@ -191,8 +219,8 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     defaults: { ease: 'inOutQuad' },
   });
 
-  // Reset CSS classes at the start of each loop iteration
-  timeline.call(resetState, 0);
+  // Reset persistent effects at the start of each loop iteration
+  timeline.call(resetPersistentEffects, 0);
 
   var offset = 0;
 
@@ -204,104 +232,137 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     // Annotation update
     timeline.call(function() { setAnnotation(step); }, offset);
 
-    // Node activation via .call() — CSS transition handles the visual smoothing
+    // Track which nodes are activated in this step
+    var activatedInStep = {};
+
+    // Node activation: opacity on timeline + CSS class via .call()
     if (step.activateNodes) step.activateNodes.forEach(function(nid) {
       if (!nodeMap[nid]) return;
+      activatedInStep[nid] = true;
+      var fromOpacity = nodeActivated[nid] ? 0.85 : 0.4;
+      nodeActivated[nid] = true;
+      timeline.add(nodeMap[nid], { opacity: [fromOpacity, 1], duration: 150 }, offset);
       timeline.call(function() {
-        nodeMap[nid].style.opacity = '1';
         nodeMap[nid].classList.add('soom-node-active');
       }, offset);
     });
 
-    // Track which nodes are activated in this step (for completion)
-    var activatedInStep = {};
-    if (step.activateNodes) step.activateNodes.forEach(function(nid) {
-      activatedInStep[nid] = true;
-    });
-
-    // Edge draws + flow particles on the timeline
+    // Edge draws via createDrawable + flow particles
     if (step.activateEdges && step.activateEdges.length > 0) {
       step.activateEdges.forEach(function(eid) {
         var edge = resolveEdge(eid);
         if (!edge) return;
         var pathEl = edge.path;
-        var len = pathEl.getTotalLength ? pathEl.getTotalLength() : 300;
         var info = EDGE_INFO[eid];
         var targetNodeId = info ? info.target : null;
 
-        // Edge draw: strokeDashoffset animation on the timeline
-        timeline.add(pathEl, {
-          strokeDashoffset: [len, 0],
-          opacity: [0.2, 1],
-          duration: duration,
-          onComplete: function() {
-            if (pathEl._origMarkerEnd) pathEl.style.markerEnd = pathEl._origMarkerEnd;
-            if (pathEl._origMarkerStart) pathEl.style.markerStart = pathEl._origMarkerStart;
-          },
-        }, offset);
+        // Find drawable for this edge
+        var drawable = drawableMap[eid];
+        if (!drawable) {
+          // Fallback: try to find by iterating drawableMap
+          for (var dk in drawableMap) {
+            if (dk.indexOf(eid.replace('edge-', '')) !== -1) {
+              drawable = drawableMap[dk];
+              break;
+            }
+          }
+        }
 
-        // Flow particle: proxy object animated on the timeline
+        // Edge draw via svg.createDrawable
+        if (drawable) {
+          timeline.add(drawable, { draw: '0 1', duration: duration }, offset);
+        }
+        // Edge opacity fade-in alongside draw
+        timeline.add(pathEl, { opacity: [0.2, 1], duration: duration }, offset);
+        // Restore markers on edge completion
+        timeline.call(function() {
+          if (pathEl._origMarkerEnd) pathEl.style.markerEnd = pathEl._origMarkerEnd;
+          if (pathEl._origMarkerStart) pathEl.style.markerStart = pathEl._origMarkerStart;
+        }, offset + duration);
+
+        // Flow particle via svg.createMotionPath
         var circle = document.createElementNS(svgNS, 'circle');
         circle.setAttribute('r', '4');
         circle.classList.add('soom-flow-particle');
         circle.style.display = 'none';
         svgEl.appendChild(circle);
 
-        var proxy = { t: 0 };
-        timeline.add(proxy, {
-          t: [0, 1],
-          duration: duration,
-          onBegin: function() { circle.style.display = ''; },
-          onRender: function() {
-            if (circle.style.display !== 'none') {
-              var pt = pathEl.getPointAtLength(proxy.t * len);
-              circle.setAttribute('cx', pt.x);
-              circle.setAttribute('cy', pt.y);
-            }
-          },
-          onComplete: function() { circle.style.display = 'none'; },
-        }, offset);
+        // Try createMotionPath — falls back to proxy if path coordinates don't align
+        var motionPathOk = false;
+        try {
+          var motion = anime.svg.createMotionPath(pathEl);
+          if (motion && motion.x && motion.y) {
+            timeline.add(circle, {
+              translateX: motion.x,
+              translateY: motion.y,
+              duration: duration,
+              onBegin: function() { circle.style.display = ''; },
+              onComplete: function() { circle.style.display = 'none'; },
+            }, offset);
+            motionPathOk = true;
+          }
+        } catch(e) { /* createMotionPath not available or failed */ }
+
+        if (!motionPathOk) {
+          // Fallback: proxy object + getPointAtLength
+          var len = pathEl.getTotalLength ? pathEl.getTotalLength() : 300;
+          var proxy = { t: 0 };
+          timeline.add(proxy, {
+            t: [0, 1],
+            duration: duration,
+            onBegin: function() { circle.style.display = ''; },
+            onRender: function() {
+              if (circle.style.display !== 'none') {
+                var pt = pathEl.getPointAtLength(proxy.t * len);
+                circle.setAttribute('cx', pt.x);
+                circle.setAttribute('cy', pt.y);
+              }
+            },
+            onComplete: function() { circle.style.display = 'none'; },
+          }, offset);
+        }
 
         // Activate target node when edge arrives
         if (targetNodeId && nodeMap[targetNodeId] && !activatedInStep[targetNodeId]) {
           activatedInStep[targetNodeId] = true;
-          (function(nid) {
+          var tFromOpacity = nodeActivated[targetNodeId] ? 0.85 : 0.4;
+          nodeActivated[targetNodeId] = true;
+          (function(nid, fromOp) {
+            timeline.add(nodeMap[nid], { opacity: [fromOp, 1], duration: 150 }, offset + duration);
             timeline.call(function() {
-              nodeMap[nid].style.opacity = '1';
               nodeMap[nid].classList.add('soom-node-active');
             }, offset + duration);
-          })(targetNodeId);
+          })(targetNodeId, tFromOpacity);
         }
       });
     }
 
-    // Step completion: transition all activated nodes to completed state
-    var completeOffset = offset + duration + 100;
+    // Step completion: transition activated nodes to completed
+    var completeOffset = offset + duration + 200;
     var nodesInStep = Object.keys(activatedInStep);
 
     nodesInStep.forEach(function(nid) {
+      if (!nodeMap[nid]) return;
+      timeline.add(nodeMap[nid], { opacity: [1, 0.85], duration: 200 }, completeOffset);
       timeline.call(function() {
-        if (!nodeMap[nid]) return;
-        nodeMap[nid].style.opacity = '0.85';
         nodeMap[nid].classList.remove('soom-node-active');
         nodeMap[nid].classList.add('soom-node-completed');
         startGlowPulse(nid);
       }, completeOffset);
     });
 
-    // Marching dotted lines on completed edges
+    // Marching dotted lines on completed edges via anime.animate()
     if (step.activateEdges) step.activateEdges.forEach(function(eid) {
       timeline.call(function() {
         var edge = resolveEdge(eid);
         if (edge) {
-          edge.path.style.strokeDasharray = '';
-          edge.path.style.strokeDashoffset = '';
           edge.path.classList.add('soom-edge-completed');
+          startMarchingLine(edge.path);
         }
       }, completeOffset);
     });
 
-    // If no edges, add a dummy animation so the timeline spans this step's duration
+    // If no edges, add a dummy so timeline spans this step's duration
     if (!step.activateEdges || step.activateEdges.length === 0) {
       var dummy = { v: 0 };
       timeline.add(dummy, { v: 1, duration: duration }, offset);
@@ -310,7 +371,7 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     offset = completeOffset + 200;
   });
 
-  // Hold at end: extend timeline so last step's glow is visible before loop
+  // Hold at end so last step's glow is visible before loop
   var endHold = { v: 0 };
   timeline.add(endHold, { v: 1, duration: 2000 }, offset);
 
@@ -323,60 +384,38 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     return 0;
   }
 
-  function applyClassesForStep(targetStep) {
-    resetState();
-    // Reset all edges to initial drawing state
-    Object.keys(edgeMap).forEach(function(eid) {
-      var p = edgeMap[eid].path;
-      var len = edgeLengths[eid] || 300;
-      p.style.strokeDasharray = len;
-      p.style.strokeDashoffset = len;
-      p.style.opacity = '0.2';
-    });
-    // Reset all nodes to initial state
-    Object.keys(nodeMap).forEach(function(nid) {
-      nodeMap[nid].style.opacity = '0.4';
-    });
-    // Apply completed state for all steps before targetStep
-    for (var i = 0; i < targetStep && i < steps.length; i++) {
+  // Lightweight seek helper — only manages CSS classes + persistent effects.
+  // Timeline.seek() handles all animated properties (opacity, draw, etc.)
+  function seekToStep(n) {
+    resetPersistentEffects();
+    // Apply completed CSS classes for steps before n
+    for (var i = 0; i < n && i < steps.length; i++) {
       var s = steps[i];
       if (s.activateNodes) s.activateNodes.forEach(function(nid) {
-        if (nodeMap[nid]) {
-          nodeMap[nid].style.opacity = '0.85';
-          nodeMap[nid].classList.add('soom-node-completed');
-        }
+        if (nodeMap[nid]) nodeMap[nid].classList.add('soom-node-completed');
       });
       if (s.activateEdges) s.activateEdges.forEach(function(eid) {
         var info = EDGE_INFO[eid];
         if (info && info.target && nodeMap[info.target]) {
-          nodeMap[info.target].style.opacity = '0.85';
           nodeMap[info.target].classList.add('soom-node-completed');
         }
         var edge = resolveEdge(eid);
         if (edge) {
-          edge.path.style.strokeDasharray = '';
-          edge.path.style.strokeDashoffset = '0';
-          edge.path.style.opacity = '1';
-          edge.path.classList.add('soom-edge-completed');
           if (edge.path._origMarkerEnd) edge.path.style.markerEnd = edge.path._origMarkerEnd;
           if (edge.path._origMarkerStart) edge.path.style.markerStart = edge.path._origMarkerStart;
         }
       });
     }
-    // Apply active state for current step's nodes
-    if (targetStep < steps.length) {
-      var s = steps[targetStep];
-      if (s.activateNodes) s.activateNodes.forEach(function(nid) {
-        if (nodeMap[nid]) {
-          nodeMap[nid].style.opacity = '1';
-          nodeMap[nid].classList.add('soom-node-active');
-        }
+    // Apply active CSS class for target step
+    if (n < steps.length && steps[n].activateNodes) {
+      steps[n].activateNodes.forEach(function(nid) {
+        if (nodeMap[nid]) nodeMap[nid].classList.add('soom-node-active');
       });
     }
-    // Update annotation for target step
-    if (targetStep < steps.length) {
-      setAnnotation(steps[targetStep]);
-    }
+    // Update annotation
+    if (n < steps.length) setAnnotation(steps[n]);
+    // Seek timeline (handles opacity, draw, edge opacity)
+    timeline.seek(stepOffsets[n], 1);
   }
 
   window.soomAnimation = {
@@ -385,45 +424,31 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     pause: function() {
       timeline.pause();
       glowAnimations.forEach(function(a) { if (a && a.pause) a.pause(); });
+      marchAnimations.forEach(function(a) { if (a && a.pause) a.pause(); });
     },
     stepForward: function() {
       var cur = getCurrentStepIndex();
       if (cur < steps.length - 1) {
-        var next = cur + 1;
         timeline.pause();
-        applyClassesForStep(next);
-        timeline.seek(stepOffsets[next], 1);
+        seekToStep(cur + 1);
       }
     },
     stepBackward: function() {
       var cur = getCurrentStepIndex();
       if (cur > 0) {
-        var prev = cur - 1;
         timeline.pause();
-        applyClassesForStep(prev);
-        timeline.seek(stepOffsets[prev], 1);
+        seekToStep(cur - 1);
       }
     },
     goToStep: function(n) {
       if (n >= 0 && n < steps.length) {
         timeline.pause();
-        applyClassesForStep(n);
-        timeline.seek(stepOffsets[n], 1);
+        seekToStep(n);
       }
     },
     reset: function() {
       timeline.pause();
-      resetState();
-      Object.keys(edgeMap).forEach(function(eid) {
-        var p = edgeMap[eid].path;
-        var len = edgeLengths[eid] || 300;
-        p.style.strokeDasharray = len;
-        p.style.strokeDashoffset = len;
-        p.style.opacity = '0.2';
-      });
-      Object.keys(nodeMap).forEach(function(nid) {
-        nodeMap[nid].style.opacity = '0.4';
-      });
+      resetPersistentEffects();
       timeline.seek(0, 1);
     },
     setSpeed: function(multiplier) {
