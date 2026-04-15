@@ -8,8 +8,8 @@ describe('buildWatermarkSvg', () => {
     expect(svg.length).toBeGreaterThan(0);
   });
 
-  it('should link to hansoom.dev', () => {
-    expect(svg).toContain('href="https://hansoom.dev"');
+  it('should link to hansoom.dev with UTM params', () => {
+    expect(svg).toContain('href="https://hansoom.dev?utm_source=soom-output');
   });
 
   it('should open link in new tab', () => {
