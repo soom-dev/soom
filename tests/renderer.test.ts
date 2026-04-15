@@ -13,7 +13,7 @@ describe('HTML Renderer', () => {
   it('should use dark theme by default', async () => {
     const html = await renderHtml('<svg></svg>');
     expect(html).toContain('class="soom-dark"');
-    expect(html).toContain('#362F49');
+    expect(html).toContain('#1E2A3A');
   });
 
   it('should use light theme when specified', async () => {
