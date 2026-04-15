@@ -36,9 +36,84 @@ export const baseCss = `
     .flowchart-link {
       filter: drop-shadow(1px 2px 3px var(--soom-edge-shadow));
     }
-    /* Subgraph hierarchy */
-    .cluster rect { stroke-dasharray: 8 4; stroke-width: 2px; }
-    .cluster .cluster rect { stroke-dasharray: 2 4; stroke-width: 1.5px; }
+
+    /* ── Mermaid SVG overrides ──────────────────────────────────── */
+    /* Edges: override mermaid's #0b0b0b stroke with theme-aware color */
+    .edgePath .path,
+    .flowchart-link {
+      stroke: var(--soom-edge-stroke) !important;
+    }
+    /* Arrowhead markers */
+    .marker { fill: var(--soom-marker-fill) !important; stroke: var(--soom-marker-fill) !important; }
+    .arrowheadPath { fill: var(--soom-marker-fill) !important; }
+    marker path { fill: var(--soom-marker-fill) !important; stroke: var(--soom-marker-fill) !important; }
+    /* Node labels: override mermaid's fill:#333 / color:#333 */
+    .label text,
+    .nodeLabel,
+    .node .label text,
+    .label span,
+    .node .label span,
+    .node .label foreignObject,
+    .label foreignObject {
+      fill: var(--soom-label-color) !important;
+      color: var(--soom-label-color) !important;
+    }
+    /* Node label layout: center in foreignObject, prevent overflow */
+    .node foreignObject {
+      overflow: hidden !important;
+    }
+    .node foreignObject > div {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 100% !important;
+      height: 100% !important;
+      text-align: center !important;
+      overflow: hidden !important;
+    }
+    .nodeLabel {
+      overflow: hidden !important;
+      word-wrap: break-word !important;
+      padding: 4px 8px !important;
+      line-height: 1.3 !important;
+    }
+    /* Edge labels: theme-aware background */
+    .edgeLabel {
+      background-color: var(--soom-edge-label-bg) !important;
+      color: var(--soom-edge-label-text) !important;
+    }
+    .edgeLabel p {
+      background-color: var(--soom-edge-label-bg) !important;
+      color: var(--soom-edge-label-text) !important;
+    }
+    .edgeLabel rect {
+      fill: var(--soom-edge-label-bg) !important;
+      opacity: 0.9 !important;
+    }
+    .edgeLabel .label span {
+      color: var(--soom-edge-label-text) !important;
+    }
+    /* Subgraph clusters: theme-aware fills and borders */
+    .cluster rect {
+      fill: var(--soom-subgraph-bg) !important;
+      stroke: var(--soom-subgraph-border) !important;
+      stroke-dasharray: 8 4;
+      stroke-width: 1.5px !important;
+    }
+    /* Nested subgraph: slightly different fill for hierarchy */
+    .cluster[data-depth="1"] rect,
+    .cluster[data-depth="2"] rect {
+      fill: var(--soom-subgraph-nested-bg) !important;
+      stroke-dasharray: 4 3;
+      stroke-width: 1.5px !important;
+    }
+    /* Cluster labels */
+    .cluster-label text,
+    .cluster-label span,
+    .cluster text {
+      fill: var(--soom-cluster-text) !important;
+      color: var(--soom-cluster-text) !important;
+    }
     /* Watermark */
     .soom-watermark {
       position: fixed;

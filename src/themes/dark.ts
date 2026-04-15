@@ -12,7 +12,7 @@ export const darkTheme = {
     body.soom-dark {
       --soom-bg: #362F49;
       --soom-text: #e0e0e0;
-      --soom-grid-dot: rgba(255,255,255,0.06);
+      --soom-grid-dot: rgba(255,255,255,0.12);
       --soom-accent: #2FD9D4;
       --soom-accent-glow: rgba(47, 217, 212, 0.6);
       --soom-edge-color: #FD58D1;
@@ -25,6 +25,17 @@ export const darkTheme = {
       --soom-annot-border: rgba(47, 217, 212, 0.2);
       --soom-controls-bg: rgba(30, 25, 50, 0.88);
       --soom-controls-hover: rgba(255, 255, 255, 0.1);
+      --soom-edge-stroke: rgba(224, 224, 224, 0.5);
+      --soom-edge-stroke-active: #e0e0e0;
+      --soom-marker-fill: rgba(224, 224, 224, 0.6);
+      --soom-label-color: #e0e0e0;
+      --soom-edge-label-bg: rgba(42, 36, 64, 0.85);
+      --soom-edge-label-text: #c0c0c0;
+      --soom-subgraph-bg: rgba(58, 50, 80, 0.5);
+      --soom-subgraph-nested-bg: rgba(68, 60, 95, 0.5);
+      --soom-subgraph-border: rgba(47, 217, 212, 0.25);
+      --soom-subgraph-label: #a0a0b0;
+      --soom-cluster-text: #c0c0d0;
     }
   `,
 };
