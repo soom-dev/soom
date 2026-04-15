@@ -193,9 +193,7 @@ test.describe('kitchen-sink', () => {
     expect(jsErrors, `JS errors detected: ${jsErrors.join('; ')}`).toHaveLength(0);
   });
 
-  test.fixme('totalSteps >= 10 (no step collapse)', async ({ page }) => {
-    // Known engine bug: auto-sequencer collapses kitchen-sink to 2 steps.
-    // Fix tracked for a separate branch.
+  test('totalSteps >= 10 (no step collapse)', async ({ page }) => {
     const totalSteps = await page.evaluate(() => (window as any).soomAnimation.totalSteps);
     expect(totalSteps).toBeGreaterThanOrEqual(10);
   });
