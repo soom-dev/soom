@@ -4,7 +4,10 @@ import type { AnimaGraph, GraphNode, GraphEdge } from '../graph/types.js';
  * Parse a Mermaid edge SVG ID (e.g. "L-NODE_1A-NODE_2A-0") into source/target
  * using known node IDs to handle IDs that contain the delimiter characters.
  */
-function parseEdgeId(rawId: string, knownNodeIds: string[]): { source: string; target: string } | null {
+function parseEdgeId(
+  rawId: string,
+  knownNodeIds: string[]
+): { source: string; target: string } | null {
   // Find the "L-" or "L_" edge-pattern delimiter (not an 'L' inside a node name)
   const lIdx = rawId.search(/L[-_]/);
   if (lIdx < 0) return null;
