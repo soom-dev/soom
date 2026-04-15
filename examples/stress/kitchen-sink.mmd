@@ -1,0 +1,144 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#4a90d9'}}}%%
+flowchart TB
+    %% === NODE SHAPES (all 13 types) ===
+    rect[Rectangle Node]
+    rounded(Rounded Rectangle)
+    stadium([Stadium Shape])
+    subroutine[[Subroutine Node]]
+    cylinder[(Database<br/>Cylinder)]
+    circle((Circle))
+    asymmetric>Asymmetric Flag]
+    diamond{Decision<br/>Diamond}
+    hexagon{{Hexagon Node}}
+    parallelogram[/Parallelogram/]
+    trapezoid[\Trapezoid\]
+    trap_alt[/Trapezoid Alt\]
+    double_circle(((Double Circle)))
+
+    %% === NESTED SUBGRAPHS (3 levels deep) ===
+    subgraph cloud["☁️ Cloud Platform"]
+        direction TB
+        subgraph ingress["Ingress Layer"]
+            CDN[CDN Edge<br/>Cache]
+            WAF[Web Application<br/>Firewall]
+            LB([Load Balancer])
+        end
+        subgraph services["Microservices"]
+            direction LR
+            API_GW[API Gateway]
+            AUTH_SVC[Auth<br/>Service]
+            USER_SVC[User<br/>Service]
+            ORDER_SVC[Order<br/>Service]
+            NOTIFY_SVC[Notification<br/>Service]
+        end
+        subgraph data["Data Layer"]
+            direction LR
+            PG_PRIMARY[(PostgreSQL<br/>Primary)]
+            PG_REPLICA[(PostgreSQL<br/>Replica)]
+            REDIS[(Redis<br/>Cache)]
+            S3[(S3 Object<br/>Store)]
+            KAFKA{{Kafka<br/>Event Bus}}
+        end
+    end
+
+    subgraph monitoring["Observability"]
+        PROM(Prometheus)
+        GRAFANA[Grafana]
+        LOKI[Loki Logs]
+        JAEGER[Jaeger<br/>Tracing]
+    end
+
+    subgraph ci_cd["CI/CD Pipeline"]
+        direction LR
+        GIT_PUSH>Git Push]
+        LINT[Lint &<br/>Format]
+        TEST{Tests<br/>Pass?}
+        BUILD[Build<br/>Image]
+        SCAN[Security<br/>Scan]
+        DEPLOY_STG([Deploy<br/>Staging])
+        APPROVE{Manual<br/>Approve?}
+        DEPLOY_PROD([Deploy<br/>Production])
+        ROLLBACK[\Rollback/]
+    end
+
+    %% === EDGE TYPES ===
+    rect --> rounded
+    rounded --> stadium
+    stadium -.-> subroutine
+    subroutine -.->|async callback| cylinder
+    cylinder ==> circle
+    circle ==>|heavy traffic| diamond
+
+    %% Fan-out from decision (3 branches)
+    diamond -->|Yes| hexagon
+    diamond -->|No| parallelogram
+    diamond -->|Maybe| trapezoid
+
+    %% Bidirectional
+    hexagon <--> trap_alt
+
+    %% Multi-target fan-out
+    parallelogram --> asymmetric
+    parallelogram --> double_circle
+
+    %% Fan-in convergence
+    asymmetric --> trapezoid
+    double_circle --> trapezoid
+
+    %% Cycle back to start
+    trapezoid --> rect
+
+    %% === CLOUD FLOW ===
+    CDN -->|HTTPS| WAF
+    WAF -->|Filtered| LB
+    LB -->|Route| API_GW
+    API_GW -->|Validate JWT| AUTH_SVC
+    AUTH_SVC -.->|Token Valid| API_GW
+    API_GW -->|/users/*| USER_SVC
+    API_GW -->|/orders/*| ORDER_SVC
+    API_GW ==>|/notify| NOTIFY_SVC
+
+    USER_SVC -->|Read| PG_REPLICA
+    USER_SVC -->|Write| PG_PRIMARY
+    ORDER_SVC -->|Read/Write| PG_PRIMARY
+    ORDER_SVC -->|Cache| REDIS
+    ORDER_SVC -.->|Publish Event| KAFKA
+    KAFKA -.->|Consume| NOTIFY_SVC
+    NOTIFY_SVC -->|Store| S3
+    PG_PRIMARY -.->|Replicate| PG_REPLICA
+
+    %% === CI/CD FLOW WITH CYCLES ===
+    GIT_PUSH --> LINT
+    LINT --> TEST
+    TEST -->|Pass| BUILD
+    TEST -->|Fail| GIT_PUSH
+    BUILD --> SCAN
+    SCAN -->|Clean| DEPLOY_STG
+    SCAN -.->|Vuln Found| GIT_PUSH
+    DEPLOY_STG --> APPROVE
+    APPROVE -->|Approved| DEPLOY_PROD
+    APPROVE -->|Rejected| ROLLBACK
+    ROLLBACK -.-> DEPLOY_STG
+
+    %% === CROSS-SUBGRAPH EDGES ===
+    DEPLOY_PROD ==>|Helm Release| LB
+    services -->|Metrics| PROM
+    PROM --> GRAFANA
+    services -.->|Logs| LOKI
+    services -.->|Traces| JAEGER
+    KAFKA -.->|Events| JAEGER
+
+    %% === STYLES (classDef + class assignments) ===
+    classDef primary fill:#4a90d9,stroke:#2d6cb4,color:#fff,stroke-width:2px
+    classDef danger fill:#e74c3c,stroke:#c0392b,color:#fff,stroke-width:2px
+    classDef success fill:#2ecc71,stroke:#27ae60,color:#fff,stroke-width:2px
+    classDef warning fill:#f39c12,stroke:#e67e22,color:#fff,stroke-width:2px
+    classDef database fill:#9b59b6,stroke:#8e44ad,color:#fff,stroke-width:2px
+    classDef async fill:#1abc9c,stroke:#16a085,color:#fff,stroke-dasharray:5 5
+
+    class API_GW,LB,CDN primary
+    class TEST,APPROVE,diamond danger
+    class DEPLOY_PROD,BUILD success
+    class WAF,SCAN,ROLLBACK warning
+    class PG_PRIMARY,PG_REPLICA,REDIS,S3,cylinder database
+    class KAFKA,NOTIFY_SVC async
