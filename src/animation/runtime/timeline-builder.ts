@@ -97,12 +97,6 @@ export function buildTimelineJs(): string {
           duration: 150,
         }, offset);
       }
-      // Lift node via SVG transform offset
-      if (nodeLift[nid]) {
-        (function(id) {
-          timeline.add(nodeLift[id], { lift: [0, -5], duration: 150, onRender: function() { applyLift(id); } }, offset);
-        })(nid);
-      }
     });
 
     if (step.activateEdges && step.activateEdges.length > 0) {
@@ -154,9 +148,6 @@ export function buildTimelineJs(): string {
                 duration: 150,
               }, offset + duration);
             }
-            if (nodeLift[nid]) {
-              timeline.add(nodeLift[nid], { lift: [0, -5], duration: 150, onRender: function() { applyLift(nid); } }, offset + duration);
-            }
           })(targetNodeId, tFromOpacity);
         }
       });
@@ -171,6 +162,7 @@ export function buildTimelineJs(): string {
       timeline.call(function() {
         nodeMap[nid].classList.remove('soom-node-active');
         nodeMap[nid].classList.add('soom-node-completed');
+        startHoverFloat(nid);
       }, completeOffset);
       // Settle shadow: shrink back from active elevation
       var settleShape = nodeMap[nid].querySelector('rect, polygon, circle, ellipse');
@@ -179,12 +171,6 @@ export function buildTimelineJs(): string {
           filter: ['drop-shadow(4px 8px 12px var(--soom-shadow-active))', 'drop-shadow(2px 4px 6px var(--soom-shadow-completed))'],
           duration: 200, ease: 'outQuad',
         }, completeOffset);
-      }
-      // Settle: node lowers back
-      if (nodeLift[nid]) {
-        (function(id) {
-          timeline.add(nodeLift[id], { lift: [-5, 0], duration: 200, ease: 'outQuad', onRender: function() { applyLift(id); } }, completeOffset);
-        })(nid);
       }
     });
 

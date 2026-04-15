@@ -1,6 +1,7 @@
 export function buildPersistentEffectsJs(): string {
   return `
   var marchAnimations = [];
+  var hoverAnimations = [];
   var focusLoops = [];
   var focusParticles = [];
 
@@ -22,6 +23,8 @@ export function buildPersistentEffectsJs(): string {
       p.style.removeProperty('stroke-dasharray');
       p.style.removeProperty('stroke-width');
     });
+    hoverAnimations.forEach(function(a) { if (a) a.revert(); });
+    hoverAnimations = [];
     Object.keys(nodeMap).forEach(function(nid) {
       nodeMap[nid].classList.remove('soom-node-active', 'soom-node-completed');
       // Reset lift to 0 and restore original transform
@@ -72,6 +75,20 @@ export function buildPersistentEffectsJs(): string {
     if (activeEdgeIds.length > 0) {
       setPauseAnnotation(activeEdgeIds);
     }
+  }
+
+  function startHoverFloat(nid) {
+    if (!nodeLift[nid] || !nodeOrigY[nid]) return;
+    var anim = anime.animate(nodeLift[nid], {
+      lift: [-3, -7],
+      duration: 1200,
+      loop: true,
+      alternate: true,
+      ease: 'inOutSine',
+      composition: 'none',
+      onRender: function() { applyLift(nid); },
+    });
+    hoverAnimations.push(anim);
   }
 
   function startMarchingLine(pathEl) {
