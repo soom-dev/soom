@@ -1,0 +1,33 @@
+flowchart TB
+    subgraph SECTION_1["Section 1"]
+        NODE_1A[Node 1A]
+        NODE_1B[Node 1B]
+    end
+
+    subgraph SECTION_2["Section 2"]
+        NODE_2A[Node 2A]
+        NODE_2B[Node 2B]
+    end
+
+    subgraph SECTION_3["Section 3"]
+        subgraph SECTION_3A["Section 3A"]
+            NODE_3A[Node 3A]
+            NODE_3B[Node 3B]
+            NODE_3C[Node 3C]
+            NODE_3D[Node 3D]
+        end
+
+        subgraph SECTION_3B["Section 3B"]
+            NODE_4A[Node 4A]
+            NODE_4B[Node 4B]
+        end
+    end
+
+    NODE_1A -->|request| NODE_2A
+    NODE_2A --> NODE_2B
+    NODE_2A --> NODE_1B
+    NODE_1B --> NODE_3B
+    NODE_3B --> NODE_3C
+    NODE_3C --> NODE_4A
+    NODE_3C --> NODE_4B
+    NODE_3A --> NODE_3C
