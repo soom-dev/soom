@@ -56,6 +56,13 @@ jobs:
             exit 1
           fi
           echo "✓ No dangerous patterns found"
+      - name: Check for CLAUDE.md in repo
+        run: |
+          if git ls-tree -r HEAD --name-only | grep -q 'CLAUDE.md'; then
+            echo "ERROR: CLAUDE.md found in repo tree. Remove it and add to .gitignore."
+            exit 1
+          fi
+          echo "✓ CLAUDE.md not in repo"
 
   test:
     name: Test

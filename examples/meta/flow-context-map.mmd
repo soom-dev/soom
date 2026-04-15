@@ -1,0 +1,21 @@
+graph TD
+    CLAUDE["CLAUDE.md<br/>Rules + Current Task"] -->|"product context"| CONTEXT["CONTEXT.md<br/>Vision, Decisions, Competitive"]
+    CLAUDE -->|"how it works"| TECH["technical_design.md<br/>Architecture, Engine, Pipeline"]
+    CLAUDE -->|"what to build next"| PLAN["phase 1b.md<br/>Current Phase Plan"]
+    CLAUDE -->|"what was built"| HISTORY["history/<br/>Phase Completion Reports"]
+    CLAUDE -->|"past mistakes"| LEARN["technical_learnings/<br/>Per-Branch Learnings"]
+    CLAUDE -->|"future ideas"| BACKLOG["backlog/<br/>Features, Chores, Tech Debt"]
+
+    CONTEXT -->|"research basis"| RESEARCH["research.md<br/>Market Analysis"]
+    PLAN -->|"full roadmap"| BUILD["build_plan.md<br/>7-Phase Plan"]
+    BUILD --> P1A["phase 1a.md ✅<br/>Animation Engine"]
+    BUILD --> P1B["phase 1b.md ⬅️ CURRENT<br/>Playback Controls"]
+    BUILD --> P1C["phase 1c.md<br/>Brand & Docs"]
+    BUILD --> P2["Phase 2<br/>Launch"]
+
+    LEARN --> L1["feat-animation-engine.md"]
+    LEARN --> L2["refactor-animejs-timeline.md"]
+    LEARN --> L3["refactor-animejs-utilities.md"]
+    LEARN --> L4["feat-visual-overhaul.md"]
+    LEARN --> L5["...12 more files"]
+  
