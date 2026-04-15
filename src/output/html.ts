@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { baseCss } from '../themes/base.js';
 import { darkTheme } from '../themes/dark.js';
 import { lightTheme } from '../themes/light.js';
@@ -7,6 +10,16 @@ import { sanitizeSvg } from './sanitize.js';
 import { buildToggleScript, buildToggleCss } from './toggle.js';
 import { buildControlsHtml, buildControlsScript } from './controls.js';
 import { loadAnimeJs } from './anime-loader.js';
+
+function getPackageVersion(): string {
+  try {
+    const pkgPath = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'package.json');
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+    return pkg.version || '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
 
 export type ThemeName = 'dark' | 'light';
 
@@ -21,7 +34,7 @@ export async function renderHtml(
   animation?: AnimationData
 ): Promise<string> {
   const cleanSvg = await sanitizeSvg(svg);
-  const watermarkSvg = buildWatermarkSvg();
+  const watermarkSvg = buildWatermarkSvg(getPackageVersion());
   const animeJs = await loadAnimeJs();
   const watermarkScript = buildWatermarkScript();
   const toggleScript = buildToggleScript();
