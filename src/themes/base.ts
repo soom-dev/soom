@@ -59,6 +59,7 @@ export const baseCss = `
     .node foreignObject {
       overflow: hidden !important;
       text-align: center !important;
+      font-weight: 700 !important;
     }
     /* If Mermaid wraps content in a div (varies by version/shape), flex-center it */
     .node foreignObject > div {
@@ -77,6 +78,7 @@ export const baseCss = `
       text-align: center !important;
       padding: 8px !important;
       line-height: 1.3 !important;
+      font-weight: 700 !important;
     }
     /* Edge labels: theme-aware background */
     .edgeLabel {
