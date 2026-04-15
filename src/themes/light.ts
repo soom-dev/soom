@@ -26,8 +26,8 @@ export const lightTheme = {
       --soom-controls-bg: rgba(235, 230, 255, 0.92);
       --soom-controls-hover: rgba(0, 0, 0, 0.08);
       --soom-edge-stroke: rgba(26, 26, 46, 0.4);
-      --soom-edge-stroke-active: #1a1a2e;
-      --soom-marker-fill: rgba(26, 26, 46, 0.5);
+      --soom-edge-stroke-active: #2d2d4e;
+      --soom-marker-fill: rgba(26, 26, 46, 0.8);
       --soom-label-color: #1a1a2e;
       --soom-edge-label-bg: rgba(248, 246, 255, 0.9);
       --soom-edge-label-text: #444;

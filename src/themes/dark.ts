@@ -26,8 +26,8 @@ export const darkTheme = {
       --soom-controls-bg: rgba(16, 24, 36, 0.92);
       --soom-controls-hover: rgba(255, 255, 255, 0.08);
       --soom-edge-stroke: rgba(168, 196, 236, 0.45);
-      --soom-edge-stroke-active: #A8C4EC;
-      --soom-marker-fill: rgba(168, 196, 236, 0.55);
+      --soom-edge-stroke-active: #C0D8F8;
+      --soom-marker-fill: rgba(192, 216, 248, 0.85);
       --soom-label-color: #E8EDF2;
       --soom-edge-label-bg: rgba(22, 34, 50, 0.88);
       --soom-edge-label-text: #A8C4EC;
