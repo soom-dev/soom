@@ -36,8 +36,8 @@ describe('buildTimelineJs', () => {
     expect(js).toContain('var edgeTimingMap = {}');
   });
 
-  it('should set initial node opacity via timeline.set', () => {
-    expect(js).toContain('timeline.set(nodeMap[nid], { opacity: 0.4 }, 0)');
+  it('should set initial node opacity and shadow via timeline.set', () => {
+    expect(js).toContain("timeline.set(nodeMap[nid], { opacity: 0.4, filter: 'drop-shadow(2px 3px 4px var(--soom-shadow-rest))' }, 0)");
   });
 
   it('should set initial edge state via timeline.set', () => {

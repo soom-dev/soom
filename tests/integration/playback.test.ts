@@ -336,10 +336,9 @@ describe('Playback controls', () => {
     it('completed nodes have drop-shadow filter set', async () => {
       await goTo(page, 1);
       const filter = await page.evaluate(() => {
-        const completed = document.querySelector('.soom-node-completed');
+        const completed = document.querySelector('.soom-node-completed') as SVGElement;
         if (!completed) return null;
-        const shape = completed.querySelector('rect, polygon, circle, ellipse') as SVGElement;
-        return shape ? (shape.style.filter || getComputedStyle(shape).filter) : null;
+        return completed.style.filter || getComputedStyle(completed).filter;
       });
       expect(filter).not.toBeNull();
       expect(filter).toContain('drop-shadow');
@@ -440,11 +439,9 @@ describe('Playback controls', () => {
       expect(s.completedCount).toBeGreaterThan(0);
 
       const hasShadow = await page.evaluate(() => {
-        const completed = document.querySelector('.soom-node-completed');
+        const completed = document.querySelector('.soom-node-completed') as SVGElement;
         if (!completed) return false;
-        const shape = completed.querySelector('rect, polygon, circle, ellipse') as SVGElement;
-        if (!shape) return false;
-        const filter = shape.style.filter || getComputedStyle(shape).filter;
+        const filter = completed.style.filter || getComputedStyle(completed).filter;
         return filter.includes('drop-shadow');
       });
       expect(hasShadow).toBe(true);

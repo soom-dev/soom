@@ -150,7 +150,7 @@ export const baseCss = `
     .node.soom-node-completed ellipse { fill: var(--soom-completed-fill); stroke: var(--soom-accent); }
     .node.soom-node-completed { opacity: 0.85; }
     /* Completed edge base style (marching animation driven by anime.js) */
-    .soom-edge-completed { stroke: var(--soom-edge-color); opacity: 1; }
+    .soom-edge-completed { stroke: var(--soom-edge-stroke-active) !important; opacity: 1 !important; }
     /* Annotation panel */
     #soom-annotations {
       position: fixed; bottom: 128px; left: 50%; transform: translateX(-50%);
