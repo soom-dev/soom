@@ -1,4 +1,4 @@
-import type { AnimaGraph, GraphNode, GraphEdge } from '../graph/types.js';
+import type { AnimaGraph, GraphNode, GraphEdge } from '../types.js';
 
 /**
  * Parse a Mermaid edge SVG ID (e.g. "L-NODE_1A-NODE_2A-0") into source/target

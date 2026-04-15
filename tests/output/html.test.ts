@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
-import { renderHtml } from '../../src/renderer/html.js';
-import { buildControlsHtml, buildControlsScript } from '../../src/renderer/controls.js';
+import { renderHtml } from '../../src/output/html.js';
+import { buildControlsHtml, buildControlsScript } from '../../src/output/controls.js';
 
 describe('HTML Renderer', () => {
   it('should produce a valid HTML document', async () => {
@@ -169,7 +169,7 @@ describe('Animation UX fixes', () => {
   });
 
   it('fix2: controls script toggles soom-controls-hidden on body', () => {
-    const { buildControlsScript } = require('../../src/renderer/controls.js');
+    const { buildControlsScript } = require('../../src/output/controls.js');
     const script = buildControlsScript();
     expect(script).toContain('soom-controls-hidden');
     expect(script).toContain('document.body.classList');
@@ -182,21 +182,21 @@ describe('Animation UX fixes', () => {
   });
 
   it('fix3: controls script calls flashSeek on step changes', () => {
-    const { buildControlsScript } = require('../../src/renderer/controls.js');
+    const { buildControlsScript } = require('../../src/output/controls.js');
     const script = buildControlsScript();
     expect(script).toContain('flashSeek');
     expect(script).toContain('soom-seeking');
   });
 
   it('fix4: controls script sets api.timeline.onComplete for loop-end sync', () => {
-    const { buildControlsScript } = require('../../src/renderer/controls.js');
+    const { buildControlsScript } = require('../../src/output/controls.js');
     const script = buildControlsScript();
     expect(script).toContain('api.timeline.onComplete');
     expect(script).toContain('!api.timeline.loop');
   });
 
   it('fix5: controls script guards against totalSteps === 0', () => {
-    const { buildControlsScript } = require('../../src/renderer/controls.js');
+    const { buildControlsScript } = require('../../src/output/controls.js');
     const script = buildControlsScript();
     expect(script).toContain('totalSteps === 0');
     expect(script).toContain('scrubber.disabled = true');

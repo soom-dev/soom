@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { generateAnimationScript } from '../../src/animation/engine.js';
-import type { AnimationSequence, AnimaGraph } from '../../src/graph/types.js';
+import type { AnimationSequence, AnimaGraph } from '../../src/types.js';
 
 describe('generateAnimationScript', () => {
   const graph: AnimaGraph = {

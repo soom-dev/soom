@@ -1,12 +1,12 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve, basename, dirname, join } from 'node:path';
-import { renderHtml, type ThemeName } from '../renderer/html.js';
-import { generateAnimationScript } from '../animation/engine.js';
-import { autoSequence } from '../sequencer/auto.js';
-import { renderMermaidToSvg } from '../browser/playwright.js';
-import { postProcessSvg } from '../svg/post-process.js';
-import { buildGraphFromSvg } from '../svg/graph-extractor.js';
-import { openInBrowser } from '../utils/browser.js';
+import { renderHtml, type ThemeName } from './output/html.js';
+import { generateAnimationScript } from './animation/engine.js';
+import { autoSequence } from './sequencer/auto.js';
+import { renderMermaidToSvg } from './render/playwright.js';
+import { postProcessSvg } from './render/post-process.js';
+import { buildGraphFromSvg } from './render/graph-extractor.js';
+import { openInBrowser } from './utils/browser.js';
 
 interface RenderOptions {
   output?: string;
@@ -22,7 +22,6 @@ export async function renderCommand(input: string, options: RenderOptions) {
   const rawSvg = await renderMermaidToSvg(source, selectedTheme);
   const svg = postProcessSvg(rawSvg);
 
-  // Build graph from SVG and generate animation
   const graph = buildGraphFromSvg(svg, source);
   const sequence = autoSequence(graph);
   const animationScript = generateAnimationScript(sequence, graph);

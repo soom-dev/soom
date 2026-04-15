@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { Command } from 'commander';
-import { renderCommand } from './commands/render.js';
+import { renderCommand } from './pipeline.js';
 
 const program = new Command();
 
