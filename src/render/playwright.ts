@@ -76,9 +76,15 @@ export async function renderMermaidToSvg(source: string, theme: ThemeName): Prom
           shapeWidth = parseFloat(rectEl.getAttribute('width') ?? '0');
         } else {
           // Non-rect shapes (polygon, circle, path): use getBBox of the shape element
-          const shapeEl = nodeEl.querySelector<SVGGraphicsElement>('polygon, circle, ellipse, path');
+          const shapeEl = nodeEl.querySelector<SVGGraphicsElement>(
+            'polygon, circle, ellipse, path'
+          );
           if (shapeEl) {
-            try { shapeWidth = shapeEl.getBBox().width; } catch { /* ignore */ }
+            try {
+              shapeWidth = shapeEl.getBBox().width;
+            } catch {
+              /* ignore */
+            }
           }
         }
 
