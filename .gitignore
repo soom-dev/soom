@@ -148,6 +148,7 @@ scripts/fonts/
 # Playwright test artifacts
 test-results/
 playwright-report/
+.playwright-cache/
 
 # Private/local
 CLAUDE.md

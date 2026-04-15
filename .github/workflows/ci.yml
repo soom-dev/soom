@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  PLAYWRIGHT_BROWSERS_PATH: ~/.cache/ms-playwright
+  PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.playwright-cache
 
 jobs:
   secrets:
@@ -80,7 +80,7 @@ jobs:
         id: playwright-cache
         uses: actions/cache@v4
         with:
-          path: ~/.cache/ms-playwright
+          path: ${{ github.workspace }}/.playwright-cache
           key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
       - name: Install Playwright (full)
         if: steps.playwright-cache.outputs.cache-hit != 'true'
@@ -108,7 +108,7 @@ jobs:
         id: playwright-cache
         uses: actions/cache@v4
         with:
-          path: ~/.cache/ms-playwright
+          path: ${{ github.workspace }}/.playwright-cache
           key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
       - name: Install Playwright (full)
         if: steps.playwright-cache.outputs.cache-hit != 'true'
