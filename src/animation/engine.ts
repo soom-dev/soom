@@ -82,25 +82,29 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
   var annotAnim = annotEl ? anime.createAnimatable(annotEl, {
     opacity: { duration: 200, ease: 'outQuad' },
   }) : null;
+  var wordAnimation = null;  // Fix 3: track word stagger animation for cancellation
 
   function setAnnotation(step) {
     if (!annotEl) return;
+    // Cancel previous word animation before clearing children
+    if (wordAnimation) { wordAnimation.pause(); wordAnimation = null; }
     while (annotEl.firstChild) annotEl.removeChild(annotEl.firstChild);
     var texts = [];
     if (step.activateEdges && step.activateEdges.length > 0) {
       step.activateEdges.forEach(function(eid) {
         var info = EDGE_INFO[eid];
         if (info) {
-          var srcLabel = NODE_LABELS[info.source] || info.source;
-          var tgtLabel = NODE_LABELS[info.target] || info.target;
-          texts.push(srcLabel + ' \\u2192 ' + tgtLabel);
+          var srcLabel = (NODE_LABELS[info.source] || info.source).replace(/\\n/g, ' ');
+          var tgtLabel = (NODE_LABELS[info.target] || info.target).replace(/\\n/g, ' ');
+          var text = srcLabel + ' \\u2192 ' + tgtLabel;
+          if (info.label) text += ' (' + info.label + ')';
+          texts.push(text);
         }
       });
     }
-    if (step.activateNodes && step.activateNodes.length > 0) {
+    if (texts.length === 0 && step.activateNodes && step.activateNodes.length > 0) {
       step.activateNodes.forEach(function(nid) {
-        var label = NODE_LABELS[nid] || nid;
-        if (texts.length === 0) texts.push(label + ' is processing');
+        texts.push(NODE_LABELS[nid] || nid);
       });
     }
     if (step.parallel && texts.length > 1) {
@@ -110,12 +114,31 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
       header.style.marginBottom = '4px';
       annotEl.appendChild(header);
     }
+    // Fix 3: split into word spans for stagger animation
+    var allSpans = [];
     texts.forEach(function(t) {
       var div = document.createElement('div');
-      div.textContent = t;
+      var words = t.split(' ');
+      words.forEach(function(word, wi) {
+        var span = document.createElement('span');
+        span.textContent = word + (wi < words.length - 1 ? ' ' : '');
+        span.style.display = 'inline-block';
+        span.style.opacity = '0';
+        div.appendChild(span);
+        allSpans.push(span);
+      });
       annotEl.appendChild(div);
     });
     if (annotAnim) annotAnim.opacity(1);
+    if (allSpans.length > 0) {
+      wordAnimation = anime.animate(allSpans, {
+        opacity: [0, 1],
+        translateY: ['4px', '0px'],
+        duration: 200,
+        delay: anime.stagger(35),
+        ease: 'outQuad',
+      });
+    }
   }
 
   // ---- 4. Edge resolution ----
@@ -135,40 +158,78 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
   // ---- 5. Set initial state ----
   var svgNS = 'http://www.w3.org/2000/svg';
 
-  // Node initial opacity via utils.set
-  Object.keys(nodeMap).forEach(function(nid) {
-    anime.utils.set(nodeMap[nid], { opacity: 0.4 });
-  });
-
-  // Edge initial state via svg.createDrawable — handles strokeDash automatically
-  var drawableMap = {};
+  // Compute marching line pattern from actual edge geometry
+  var edgeLens = [];
   Object.keys(edgeMap).forEach(function(eid) {
     var p = edgeMap[eid].path;
-    var drawables = anime.svg.createDrawable(p);
-    drawableMap[eid] = drawables[0];
-    anime.utils.set(p, { opacity: 0.2 });
-    // Hide arrow markers until edge draws
+    if (p.getTotalLength) edgeLens.push(p.getTotalLength());
+  });
+  edgeLens.sort(function(a, b) { return a - b; });
+  var medianEdgeLen = edgeLens[Math.floor(edgeLens.length / 2)] || 100;
+  // 8 dash-gap pairs visible on the median-length edge
+  var marchRepeat = Math.round(medianEdgeLen / 8);
+  var marchGap = Math.round(marchRepeat * 3 / 5);
+  var marchDash = marchRepeat - marchGap;
+
+  // Edge measurement + marker caching (pre-timeline)
+  var edgeTotalLens = {};
+  Object.keys(edgeMap).forEach(function(eid) {
+    var p = edgeMap[eid].path;
+    var totalLen = p.getTotalLength ? p.getTotalLength() : 300;
+    edgeTotalLens[eid] = totalLen;
+    p.setAttribute('stroke-dasharray', String(totalLen));
     p._origMarkerEnd = p.getAttribute('marker-end') || '';
     p._origMarkerStart = p.getAttribute('marker-start') || '';
     p.style.markerEnd = 'none';
     p.style.markerStart = 'none';
   });
 
+  // Fix 4: Build edge label map using DOM-order iteration (not ID order)
+  var allEdgeLabels = Array.from(svgEl.querySelectorAll('.edgeLabel'));
+  var edgePaths = svgEl.querySelectorAll('.edgePath');
+  var pathToLabelMap = new Map();
+  edgePaths.forEach(function(ep, i) {
+    if (i < allEdgeLabels.length) {
+      var pathEl = ep.querySelector('path');
+      if (pathEl) pathToLabelMap.set(pathEl, allEdgeLabels[i]);
+    }
+  });
+
   // ---- 6. Build master timeline ----
   var glowAnimations = [];
   var marchAnimations = [];
+  var focusLoops = [];      // Fix 1: looping animations created on pause
+  var focusParticles = [];  // Fix 1: particle elements created on pause (need cleanup)
+
+  // Fix 1: kill focus loop animations and remove their particles
+  function stopFocusLoops() {
+    focusLoops.forEach(function(a) { if (a) a.revert(); });
+    focusLoops = [];
+    focusParticles.forEach(function(el) {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    });
+    focusParticles = [];
+  }
 
   function resetPersistentEffects() {
-    glowAnimations.forEach(function(a) { if (a && a.pause) a.pause(); });
+    // Stop all independent looping animations and revert their values
+    stopFocusLoops();
+    glowAnimations.forEach(function(a) { if (a) a.revert(); });
     glowAnimations = [];
-    marchAnimations.forEach(function(a) { if (a && a.pause) a.pause(); });
+    marchAnimations.forEach(function(a) { if (a) a.revert(); });
     marchAnimations = [];
-    // Clear inline stroke styles that may override drawable attributes
-    Object.keys(edgeMap).forEach(function(eid) {
-      edgeMap[eid].path.style.strokeDasharray = '';
-      edgeMap[eid].path.style.strokeDashoffset = '';
+    // Clear glow filter styles (revert may not remove inline filter)
+    Object.keys(nodeMap).forEach(function(nid) {
+      var shape = nodeMap[nid].querySelector('rect, polygon, circle');
+      if (shape) shape.style.removeProperty('filter');
     });
-    // Remove CSS classes
+    // Clear march inline styles so timeline-managed values show through
+    Object.keys(edgeMap).forEach(function(eid) {
+      var p = edgeMap[eid].path;
+      p.style.removeProperty('stroke-dasharray');
+      p.style.removeProperty('stroke-width');
+    });
+    // Remove CSS classes (not managed by timeline)
     Object.keys(nodeMap).forEach(function(nid) {
       nodeMap[nid].classList.remove('soom-node-active', 'soom-node-completed');
     });
@@ -181,6 +242,90 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     if (annotAnim) annotAnim.opacity(0);
     if (annotEl) {
       while (annotEl.firstChild) annotEl.removeChild(annotEl.firstChild);
+    }
+  }
+
+  // Fix 3: show annotation for only the actively drawing edges during pause
+  function setPauseAnnotation(activeEdgeIds) {
+    if (!annotEl) return;
+    if (wordAnimation) { wordAnimation.pause(); wordAnimation = null; }
+    while (annotEl.firstChild) annotEl.removeChild(annotEl.firstChild);
+    var texts = [];
+    activeEdgeIds.forEach(function(eid) {
+      var info = EDGE_INFO[eid];
+      if (info) {
+        var srcLabel = (NODE_LABELS[info.source] || info.source).replace(/\\n/g, ' ');
+        var tgtLabel = (NODE_LABELS[info.target] || info.target).replace(/\\n/g, ' ');
+        var text = srcLabel + ' \\u2192 ' + tgtLabel;
+        if (info.label) text += ' (' + info.label + ')';
+        texts.push(text);
+      }
+    });
+    if (texts.length === 0) return;
+    var allSpans = [];
+    texts.forEach(function(t) {
+      var div = document.createElement('div');
+      var words = t.split(' ');
+      words.forEach(function(word, wi) {
+        var span = document.createElement('span');
+        span.textContent = word + (wi < words.length - 1 ? ' ' : '');
+        span.style.display = 'inline-block';
+        span.style.opacity = '0';
+        div.appendChild(span);
+        allSpans.push(span);
+      });
+      annotEl.appendChild(div);
+    });
+    if (annotAnim) annotAnim.opacity(1);
+    if (allSpans.length > 0) {
+      wordAnimation = anime.animate(allSpans, {
+        opacity: [0, 1], translateY: ['4px', '0px'],
+        duration: 200, delay: anime.stagger(35), ease: 'outQuad',
+      });
+    }
+  }
+
+  // Fix 1: create looping draw + particle only for mid-draw edges while paused
+  function startFocusLoops() {
+    var stepIdx = getCurrentStepIndex();
+    if (stepIdx < 0 || stepIdx >= steps.length) return;
+    var step = steps[stepIdx];
+    if (!step.activateEdges || step.activateEdges.length === 0) return;
+
+    var currentTime = timeline.currentTime;
+    var activeEdgeIds = [];
+
+    step.activateEdges.forEach(function(eid) {
+      var timing = edgeTimingMap[eid];
+      if (!timing) return;
+      // Skip edges that haven't started drawing yet
+      if (currentTime < timing.offset) return;
+      // Skip edges that have already completed drawing
+      if (currentTime >= timing.offset + timing.duration) return;
+
+      // This edge is mid-draw — create focus loop
+      activeEdgeIds.push(eid);
+
+      var edge = resolveEdge(eid);
+      if (!edge) return;
+      var pathEl = edge.path;
+
+      // Loop draw/erase via strokeDashoffset
+      var totalLen = edgeTotalLens[eid] || 300;
+      pathEl.style.strokeDasharray = String(totalLen);
+      var focusAnim = anime.animate(pathEl, {
+        strokeDashoffset: [0, totalLen],
+        duration: 700,
+        loop: true,
+        alternate: true,
+        ease: 'inOutSine',
+      });
+      focusLoops.push(focusAnim);
+    });
+
+    // Fix 3: update annotation to show only actively drawing edges
+    if (activeEdgeIds.length > 0) {
+      setPauseAnnotation(activeEdgeIds);
     }
   }
 
@@ -200,34 +345,69 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
   }
 
   function startMarchingLine(pathEl) {
-    anime.utils.set(pathEl, { strokeDasharray: '4 8' });
+    // Thicken stroke relative to its existing width
+    var baseWidth = parseFloat(pathEl.getAttribute('stroke-width') || '1');
+    pathEl.style.strokeWidth = String(baseWidth * 1.5);
+    // Set march pattern — no drawable to conflict, style overrides the attribute
+    pathEl.style.strokeDasharray = marchDash + ' ' + marchGap;
+    // Constant velocity: full median traversal in ~3s
     var anim = anime.animate(pathEl, {
-      strokeDashoffset: [0, -12],
+      strokeDashoffset: [0, -marchRepeat],
       loop: true,
-      duration: 800,
+      duration: Math.round(marchRepeat / medianEdgeLen * 3000),
       ease: 'linear',
+      composition: 'none',
     });
     marchAnimations.push(anim);
   }
 
   var stepOffsets = [];
+  var stepEndOffsets = [];
+  var edgeTimingMap = {};
   var nodeActivated = {};
   var timeline = anime.createTimeline({
     autoplay: false,
     loop: true,
     loopDelay: 3000,
     defaults: { ease: 'inOutQuad' },
+    onLoop: function() { resetPersistentEffects(); },
   });
 
-  // Reset persistent effects at the start of each loop iteration
-  timeline.call(resetPersistentEffects, 0);
+  // Initial state via timeline.set() — makes timeline.seek() the source of truth
+  Object.keys(nodeMap).forEach(function(nid) {
+    timeline.set(nodeMap[nid], { opacity: 0.4 }, 0);
+  });
+  Object.keys(edgeMap).forEach(function(eid) {
+    timeline.set(edgeMap[eid].path, { strokeDashoffset: edgeTotalLens[eid] || 300, opacity: 0.2 }, 0);
+  });
+  allEdgeLabels.forEach(function(el) {
+    timeline.set(el, { opacity: 0 }, 0);
+  });
 
-  var offset = 0;
+  // Idle gap — diagram at rest before first step (step 0 = idle)
+  var idleGap = 500;
+  var idleDummy = { v: 0 };
+  timeline.add(idleDummy, { v: 1, duration: idleGap }, 0);
+  var offset = idleGap;
 
   steps.forEach(function(step, idx) {
-    var duration = step.duration || 800;
+    // Fix 5: pre-compute per-edge durations for this step (need max for completeOffset)
+    var edgeDurations = {};
+    var maxEdgeDuration = 0;
+    if (step.activateEdges) {
+      step.activateEdges.forEach(function(eid) {
+        var edge = resolveEdge(eid);
+        var pathLen = (edge && edge.path.getTotalLength) ? edge.path.getTotalLength() : 300;
+        var d = pathLen < 150 ? 700 : Math.max(400, Math.min(Math.round(pathLen * 3), 1200));
+        edgeDurations[eid] = d;
+        if (d > maxEdgeDuration) maxEdgeDuration = d;
+      });
+    }
+    var stepDuration = maxEdgeDuration || (step.duration || 800);
+
     timeline.label('step-' + idx, offset);
     stepOffsets.push(offset);
+    stepEndOffsets.push(offset + stepDuration + 399); // past edge draw + completion transition
 
     // Annotation update
     timeline.call(function() { setAnnotation(step); }, offset);
@@ -256,70 +436,32 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
         var info = EDGE_INFO[eid];
         var targetNodeId = info ? info.target : null;
 
-        // Find drawable for this edge
-        var drawable = drawableMap[eid];
-        if (!drawable) {
-          // Fallback: try to find by iterating drawableMap
-          for (var dk in drawableMap) {
-            if (dk.indexOf(eid.replace('edge-', '')) !== -1) {
-              drawable = drawableMap[dk];
-              break;
-            }
-          }
-        }
+        // Fix 5: use path-length-based duration and spring easing for short edges
+        var pathLen = pathEl.getTotalLength ? pathEl.getTotalLength() : 300;
+        var duration = edgeDurations[eid] || (pathLen < 150 ? 700 : Math.max(400, Math.min(Math.round(pathLen * 3), 1200)));
+        var easing = pathLen < 150 ? 'spring(1, 80, 10, 0)' : 'inOutQuad';
+        edgeTimingMap[eid] = { offset: offset, duration: duration };
 
-        // Edge draw via svg.createDrawable
-        if (drawable) {
-          timeline.add(drawable, { draw: '0 1', duration: duration }, offset);
-        }
+        // Edge draw via strokeDashoffset (totalLen → 0 reveals the stroke)
+        var totalLen = edgeTotalLens[eid] || pathLen;
+        timeline.add(pathEl, { strokeDashoffset: [totalLen, 0], duration: duration, ease: easing }, offset);
         // Edge opacity fade-in alongside draw
         timeline.add(pathEl, { opacity: [0.2, 1], duration: duration }, offset);
-        // Restore markers on edge completion
-        timeline.call(function() {
-          if (pathEl._origMarkerEnd) pathEl.style.markerEnd = pathEl._origMarkerEnd;
-          if (pathEl._origMarkerStart) pathEl.style.markerStart = pathEl._origMarkerStart;
-        }, offset + duration);
+        // Restore markers + start march when edge draw completes
+        (function(p, eid2) {
+          timeline.call(function() {
+            if (p._origMarkerEnd) p.style.markerEnd = p._origMarkerEnd;
+            if (p._origMarkerStart) p.style.markerStart = p._origMarkerStart;
+            p.classList.add('soom-edge-completed');
+            startMarchingLine(p);
+          }, offset + duration);
+        })(pathEl, eid);
 
-        // Flow particle via svg.createMotionPath
-        var circle = document.createElementNS(svgNS, 'circle');
-        circle.setAttribute('r', '4');
-        circle.classList.add('soom-flow-particle');
-        circle.style.display = 'none';
-        svgEl.appendChild(circle);
-
-        // Try createMotionPath — falls back to proxy if path coordinates don't align
-        var motionPathOk = false;
-        try {
-          var motion = anime.svg.createMotionPath(pathEl);
-          if (motion && motion.x && motion.y) {
-            timeline.add(circle, {
-              translateX: motion.x,
-              translateY: motion.y,
-              duration: duration,
-              onBegin: function() { circle.style.display = ''; },
-              onComplete: function() { circle.style.display = 'none'; },
-            }, offset);
-            motionPathOk = true;
-          }
-        } catch(e) { /* createMotionPath not available or failed */ }
-
-        if (!motionPathOk) {
-          // Fallback: proxy object + getPointAtLength
-          var len = pathEl.getTotalLength ? pathEl.getTotalLength() : 300;
-          var proxy = { t: 0 };
-          timeline.add(proxy, {
-            t: [0, 1],
-            duration: duration,
-            onBegin: function() { circle.style.display = ''; },
-            onRender: function() {
-              if (circle.style.display !== 'none') {
-                var pt = pathEl.getPointAtLength(proxy.t * len);
-                circle.setAttribute('cx', pt.x);
-                circle.setAttribute('cy', pt.y);
-              }
-            },
-            onComplete: function() { circle.style.display = 'none'; },
-          }, offset);
+        // Edge label: reveal when edge draw completes (same time as march)
+        var edgeLabelEl = pathToLabelMap.get(pathEl);
+        if (edgeLabelEl && !edgeLabelEl.textContent.trim()) edgeLabelEl = null;
+        if (edgeLabelEl) {
+          timeline.add(edgeLabelEl, { opacity: [0, 1], duration: 200 }, offset + duration);
         }
 
         // Activate target node when edge arrives
@@ -338,7 +480,7 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     }
 
     // Step completion: transition activated nodes to completed
-    var completeOffset = offset + duration + 200;
+    var completeOffset = offset + stepDuration + 200;
     var nodesInStep = Object.keys(activatedInStep);
 
     nodesInStep.forEach(function(nid) {
@@ -351,21 +493,10 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
       }, completeOffset);
     });
 
-    // Marching dotted lines on completed edges via anime.animate()
-    if (step.activateEdges) step.activateEdges.forEach(function(eid) {
-      timeline.call(function() {
-        var edge = resolveEdge(eid);
-        if (edge) {
-          edge.path.classList.add('soom-edge-completed');
-          startMarchingLine(edge.path);
-        }
-      }, completeOffset);
-    });
-
     // If no edges, add a dummy so timeline spans this step's duration
     if (!step.activateEdges || step.activateEdges.length === 0) {
       var dummy = { v: 0 };
-      timeline.add(dummy, { v: 1, duration: duration }, offset);
+      timeline.add(dummy, { v: 1, duration: stepDuration }, offset);
     }
 
     offset = completeOffset + 200;
@@ -381,81 +512,96 @@ export function generateAnimationScript(_sequence: AnimationSequence, _graph: An
     for (var i = stepOffsets.length - 1; i >= 0; i--) {
       if (t >= stepOffsets[i]) return i;
     }
-    return 0;
+    return -1; // idle state (before first step)
   }
 
-  // Lightweight seek helper — only manages CSS classes + persistent effects.
-  // Timeline.seek() handles all animated properties (opacity, draw, etc.)
   function seekToStep(n) {
+    // 1. Stop persistent loops and clean CSS/markers
     resetPersistentEffects();
-    // Apply completed CSS classes for steps before n
-    for (var i = 0; i < n && i < steps.length; i++) {
+
+    // 2. Let timeline restore all animated properties (opacity, strokeDashoffset, labels)
+    // muteCallbacks=true prevents timeline.call() from firing during seek
+    timeline.seek(stepEndOffsets[n], true);
+
+    // 3. Apply completed state for all steps up to and including n
+    // Each step position shows the fully completed result of that step
+    for (var i = 0; i <= n && i < steps.length; i++) {
       var s = steps[i];
       if (s.activateNodes) s.activateNodes.forEach(function(nid) {
-        if (nodeMap[nid]) nodeMap[nid].classList.add('soom-node-completed');
+        if (nodeMap[nid]) {
+          nodeMap[nid].classList.add('soom-node-completed');
+          startGlowPulse(nid);
+        }
       });
       if (s.activateEdges) s.activateEdges.forEach(function(eid) {
         var info = EDGE_INFO[eid];
         if (info && info.target && nodeMap[info.target]) {
           nodeMap[info.target].classList.add('soom-node-completed');
+          startGlowPulse(info.target);
         }
         var edge = resolveEdge(eid);
         if (edge) {
           if (edge.path._origMarkerEnd) edge.path.style.markerEnd = edge.path._origMarkerEnd;
           if (edge.path._origMarkerStart) edge.path.style.markerStart = edge.path._origMarkerStart;
+          edge.path.classList.add('soom-edge-completed');
+          startMarchingLine(edge.path);
         }
       });
     }
-    // Apply active CSS class for target step
-    if (n < steps.length && steps[n].activateNodes) {
-      steps[n].activateNodes.forEach(function(nid) {
-        if (nodeMap[nid]) nodeMap[nid].classList.add('soom-node-active');
-      });
+
+    // 4. Set annotation for step n — complete word animation instantly (no stagger on seek)
+    if (n < steps.length) {
+      setAnnotation(steps[n]);
+      if (wordAnimation) wordAnimation.complete();
     }
-    // Update annotation
-    if (n < steps.length) setAnnotation(steps[n]);
-    // Seek timeline (handles opacity, draw, edge opacity)
-    timeline.seek(stepOffsets[n], 1);
   }
 
   window.soomAnimation = {
     timeline: timeline,
-    play: function() { timeline.play(); },
+    play: function() {
+      stopFocusLoops();
+      if (timeline.completed) {
+        resetPersistentEffects();
+        timeline.restart();
+        return;
+      }
+      timeline.play();
+    },
     pause: function() {
       timeline.pause();
-      glowAnimations.forEach(function(a) { if (a && a.pause) a.pause(); });
-      marchAnimations.forEach(function(a) { if (a && a.pause) a.pause(); });
+      startFocusLoops();
     },
     stepForward: function() {
-      var cur = getCurrentStepIndex();
-      if (cur < steps.length - 1) {
+      var cur = getCurrentStepIndex() + 1;
+      if (cur < steps.length) {
         timeline.pause();
-        seekToStep(cur + 1);
+        seekToStep(cur);
       }
     },
     stepBackward: function() {
-      var cur = getCurrentStepIndex();
+      var cur = getCurrentStepIndex() + 1;
       if (cur > 0) {
-        timeline.pause();
-        seekToStep(cur - 1);
+        this.goToStep(cur - 1);
       }
     },
     goToStep: function(n) {
-      if (n >= 0 && n < steps.length) {
-        timeline.pause();
-        seekToStep(n);
+      timeline.pause();
+      if (n <= 0) {
+        resetPersistentEffects();
+        timeline.seek(0, true);
+      } else if (n <= steps.length) {
+        seekToStep(n - 1);
       }
     },
     reset: function() {
-      timeline.pause();
       resetPersistentEffects();
-      timeline.seek(0, 1);
+      timeline.reset();
     },
     setSpeed: function(multiplier) {
       timeline.playbackRate = multiplier || 1;
     },
-    get currentStep() { return getCurrentStepIndex(); },
-    get totalSteps() { return steps.length; },
+    get currentStep() { return getCurrentStepIndex() + 1; }, // 0=idle, 1..N=actions
+    get totalSteps() { return steps.length; }, // number of action steps
     get progress() { return timeline.progress; },
   };
 
