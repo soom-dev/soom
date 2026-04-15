@@ -1,6 +1,5 @@
 export function buildPersistentEffectsJs(): string {
   return `
-  var glowAnimations = [];
   var marchAnimations = [];
   var focusLoops = [];
   var focusParticles = [];
@@ -16,14 +15,8 @@ export function buildPersistentEffectsJs(): string {
 
   function resetPersistentEffects() {
     stopFocusLoops();
-    glowAnimations.forEach(function(a) { if (a) a.revert(); });
-    glowAnimations = [];
     marchAnimations.forEach(function(a) { if (a) a.revert(); });
     marchAnimations = [];
-    Object.keys(nodeMap).forEach(function(nid) {
-      var shape = nodeMap[nid].querySelector('rect, polygon, circle');
-      if (shape) shape.style.removeProperty('filter');
-    });
     Object.keys(edgeMap).forEach(function(eid) {
       var p = edgeMap[eid].path;
       p.style.removeProperty('stroke-dasharray');
@@ -76,21 +69,6 @@ export function buildPersistentEffectsJs(): string {
 
     if (activeEdgeIds.length > 0) {
       setPauseAnnotation(activeEdgeIds);
-    }
-  }
-
-  function startGlowPulse(nid) {
-    if (!nodeMap[nid]) return;
-    var shape = nodeMap[nid].querySelector('rect, polygon, circle');
-    if (shape) {
-      var anim = anime.animate(shape, {
-        filter: ['drop-shadow(0 0 4px currentColor)', 'drop-shadow(0 0 14px currentColor)'],
-        duration: 1500,
-        ease: 'inOutSine',
-        loop: true,
-        alternate: true,
-      });
-      glowAnimations.push(anim);
     }
   }
 

@@ -25,12 +25,7 @@ export const baseCss = `
       display: block;
       margin: 0 auto;
     }
-    /* Node shadows */
-    .node rect,
-    .node polygon,
-    .node circle {
-      filter: drop-shadow(2px 4px 6px var(--soom-node-shadow));
-    }
+    /* Node shadow elevation managed by timeline.set() at t=0 */
     /* Edge shadows */
     .edgePath path,
     .flowchart-link {
@@ -146,11 +141,13 @@ export const baseCss = `
     /* Animation states */
     .node.soom-node-active rect,
     .node.soom-node-active polygon,
-    .node.soom-node-active circle { fill: var(--soom-accent); stroke: var(--soom-accent); filter: drop-shadow(0 0 12px var(--soom-accent-glow)); }
+    .node.soom-node-active circle,
+    .node.soom-node-active ellipse { fill: var(--soom-accent); stroke: var(--soom-accent); }
     .node.soom-node-active { opacity: 1; }
     .node.soom-node-completed rect,
     .node.soom-node-completed polygon,
-    .node.soom-node-completed circle { fill: var(--soom-completed-fill); stroke: var(--soom-accent); }
+    .node.soom-node-completed circle,
+    .node.soom-node-completed ellipse { fill: var(--soom-completed-fill); stroke: var(--soom-accent); }
     .node.soom-node-completed { opacity: 0.85; }
     /* Completed edge base style (marching animation driven by anime.js) */
     .soom-edge-completed { stroke: var(--soom-edge-color); opacity: 1; }

@@ -9,7 +9,6 @@ describe('buildPersistentEffectsJs', () => {
   });
 
   it('should declare glow, march, and focus animation arrays', () => {
-    expect(js).toContain('var glowAnimations = []');
     expect(js).toContain('var marchAnimations = []');
     expect(js).toContain('var focusLoops = []');
     expect(js).toContain('var focusParticles = []');
@@ -31,7 +30,6 @@ describe('buildPersistentEffectsJs', () => {
   });
 
   it('should revert all animation types in reset', () => {
-    expect(js).toContain('glowAnimations.forEach');
     expect(js).toContain('marchAnimations.forEach');
   });
 
@@ -58,13 +56,6 @@ describe('buildPersistentEffectsJs', () => {
 
   it('should call setPauseAnnotation with active edges on pause', () => {
     expect(js).toContain('setPauseAnnotation(activeEdgeIds)');
-  });
-
-  it('should define startGlowPulse function with drop-shadow filter', () => {
-    expect(js).toContain('function startGlowPulse(nid)');
-    expect(js).toContain('drop-shadow');
-    expect(js).toContain('loop: true');
-    expect(js).toContain('alternate: true');
   });
 
   it('should define startMarchingLine function', () => {
