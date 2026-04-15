@@ -80,8 +80,8 @@ export function buildPersistentEffectsJs(): string {
   function startHoverFloat(nid) {
     if (!nodeLift[nid] || !nodeOrigY[nid]) return;
     var anim = anime.animate(nodeLift[nid], {
-      lift: [-3, -7],
-      duration: 1200,
+      lift: [-2, -12],
+      duration: 700,
       loop: true,
       alternate: true,
       ease: 'inOutSine',
