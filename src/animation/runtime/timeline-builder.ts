@@ -12,12 +12,37 @@ export function buildTimelineJs(): string {
     onLoop: function() { resetPersistentEffects(); },
   });
 
+  // Store original node Y positions for lift animation
+  var nodeOrigY = {};
+  var nodeLift = {};
+  Object.keys(nodeMap).forEach(function(nid) {
+    var t = nodeMap[nid].getAttribute('transform') || '';
+    var m = t.match(/translate\\(([\\d.]+),\\s*([\\d.]+)\\)/);
+    if (m) {
+      var x = parseFloat(m[1]);
+      var y = parseFloat(m[2]);
+      nodeOrigY[nid] = { x: x, y: y };
+      nodeLift[nid] = { lift: 0 };
+    }
+  });
+
+  function applyLift(nid) {
+    var orig = nodeOrigY[nid];
+    var lift = nodeLift[nid];
+    if (orig && lift) {
+      nodeMap[nid].setAttribute('transform', 'translate(' + orig.x + ', ' + (orig.y + lift.lift) + ')');
+    }
+  }
+
   // Initial state via timeline.set() — seekable source of truth
   Object.keys(nodeMap).forEach(function(nid) {
     timeline.set(nodeMap[nid], { opacity: 0.4 }, 0);
     var initShape = nodeMap[nid].querySelector('rect, polygon, circle, ellipse');
     if (initShape) {
       timeline.set(initShape, { filter: 'drop-shadow(2px 3px 4px var(--soom-shadow-rest))' }, 0);
+    }
+    if (nodeLift[nid]) {
+      timeline.set(nodeLift[nid], { lift: 0 }, 0);
     }
   });
   Object.keys(edgeMap).forEach(function(eid) {
@@ -72,7 +97,12 @@ export function buildTimelineJs(): string {
           duration: 150,
         }, offset);
       }
-      /* translateY removed — unreliable on SVG <g> elements, shadow alone conveys elevation */
+      // Lift node via SVG transform offset
+      if (nodeLift[nid]) {
+        (function(id) {
+          timeline.add(nodeLift[id], { lift: [0, -5], duration: 150, onRender: function() { applyLift(id); } }, offset);
+        })(nid);
+      }
     });
 
     if (step.activateEdges && step.activateEdges.length > 0) {
@@ -124,7 +154,9 @@ export function buildTimelineJs(): string {
                 duration: 150,
               }, offset + duration);
             }
-            timeline.add(nodeMap[nid], { translateY: [0, -2], duration: 150 }, offset + duration);
+            if (nodeLift[nid]) {
+              timeline.add(nodeLift[nid], { lift: [0, -5], duration: 150, onRender: function() { applyLift(nid); } }, offset + duration);
+            }
           })(targetNodeId, tFromOpacity);
         }
       });
@@ -148,7 +180,12 @@ export function buildTimelineJs(): string {
           duration: 200, ease: 'outQuad',
         }, completeOffset);
       }
-      /* translateY settle removed — shadow return alone conveys settling */
+      // Settle: node lowers back
+      if (nodeLift[nid]) {
+        (function(id) {
+          timeline.add(nodeLift[id], { lift: [-5, 0], duration: 200, ease: 'outQuad', onRender: function() { applyLift(id); } }, completeOffset);
+        })(nid);
+      }
     });
 
     if (!step.activateEdges || step.activateEdges.length === 0) {

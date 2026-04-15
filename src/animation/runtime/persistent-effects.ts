@@ -24,6 +24,8 @@ export function buildPersistentEffectsJs(): string {
     });
     Object.keys(nodeMap).forEach(function(nid) {
       nodeMap[nid].classList.remove('soom-node-active', 'soom-node-completed');
+      // Reset lift to 0 and restore original transform
+      if (nodeLift[nid]) { nodeLift[nid].lift = 0; applyLift(nid); }
     });
     Object.keys(edgeMap).forEach(function(eid) {
       edgeMap[eid].path.classList.remove('soom-edge-completed');
