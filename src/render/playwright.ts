@@ -66,43 +66,65 @@ export async function renderMermaidToSvg(source: string, theme: ThemeName): Prom
       const pxToSvg = vbWidth / svgDOMRect.width;
 
       svgEl.querySelectorAll('.node').forEach((nodeEl) => {
-        const shapeEl = nodeEl.querySelector<SVGRectElement>('rect');
+        const rectEl = nodeEl.querySelector<SVGRectElement>('rect.basic, rect.label-container');
         const foEl = nodeEl.querySelector<SVGForeignObjectElement>('foreignObject');
         if (!foEl) return;
 
-        const origFoWidth = foEl.getAttribute('width') ?? '';
-        foEl.setAttribute('width', '3000');
-
-        const labelEl = foEl.querySelector<HTMLElement>('.nodeLabel, p, span, div');
-        if (labelEl) {
-          labelEl.style.whiteSpace = 'nowrap';
-          labelEl.style.maxWidth = 'none';
-        }
-        const naturalWidthPx = labelEl ? labelEl.getBoundingClientRect().width : 0;
-
-        foEl.setAttribute('width', origFoWidth);
-
-        if (naturalWidthPx <= 0) return;
-
-        const requiredSvg = (naturalWidthPx + 32) * pxToSvg;
-        const currentFoW = parseFloat(foEl.getAttribute('width') ?? '0');
-        if (requiredSvg <= currentFoW) return;
-
-        const diff = requiredSvg - currentFoW;
-
-        if (shapeEl) {
-          const currentShapeW = parseFloat(shapeEl.getAttribute('width') ?? '0');
-          if (requiredSvg > currentShapeW) {
-            const shapeDiff = requiredSvg - currentShapeW;
-            const currentShapeX = parseFloat(shapeEl.getAttribute('x') ?? '0');
-            shapeEl.setAttribute('width', String(requiredSvg));
-            shapeEl.setAttribute('x', String(currentShapeX - shapeDiff / 2));
+        // Determine the shape's visual width from its actual element
+        let shapeWidth = 0;
+        if (rectEl) {
+          shapeWidth = parseFloat(rectEl.getAttribute('width') ?? '0');
+        } else {
+          // Non-rect shapes (polygon, circle, path): use getBBox of the shape element
+          const shapeEl = nodeEl.querySelector<SVGGraphicsElement>('polygon, circle, ellipse, path');
+          if (shapeEl) {
+            try { shapeWidth = shapeEl.getBBox().width; } catch { /* ignore */ }
           }
         }
 
-        const currentFoX = parseFloat(foEl.getAttribute('x') ?? '0');
-        foEl.setAttribute('width', String(requiredSvg));
-        foEl.setAttribute('x', String(currentFoX - diff / 2));
+        // For rect shapes: expand both shape and foreignObject to fit label (original behavior)
+        if (rectEl) {
+          const origFoWidth = foEl.getAttribute('width') ?? '';
+          foEl.setAttribute('width', '3000');
+          const labelEl = foEl.querySelector<HTMLElement>('.nodeLabel, p, span, div');
+          if (labelEl) {
+            labelEl.style.whiteSpace = 'nowrap';
+            labelEl.style.maxWidth = 'none';
+          }
+          const naturalWidthPx = labelEl ? labelEl.getBoundingClientRect().width : 0;
+          foEl.setAttribute('width', origFoWidth);
+
+          if (naturalWidthPx > 0) {
+            const requiredSvg = (naturalWidthPx + 32) * pxToSvg;
+            const currentFoW = parseFloat(foEl.getAttribute('width') ?? '0');
+            if (requiredSvg > currentFoW) {
+              const diff = requiredSvg - currentFoW;
+              const currentShapeW = parseFloat(rectEl.getAttribute('width') ?? '0');
+              if (requiredSvg > currentShapeW) {
+                const shapeDiff = requiredSvg - currentShapeW;
+                const currentShapeX = parseFloat(rectEl.getAttribute('x') ?? '0');
+                rectEl.setAttribute('width', String(requiredSvg));
+                rectEl.setAttribute('x', String(currentShapeX - shapeDiff / 2));
+              }
+              const currentFoX = parseFloat(foEl.getAttribute('x') ?? '0');
+              foEl.setAttribute('width', String(requiredSvg));
+              foEl.setAttribute('x', String(currentFoX - diff / 2));
+            }
+          }
+        }
+
+        // For ALL shapes: constrain foreignObject to never exceed shape width.
+        // This prevents labels from visually overflowing non-rect shapes
+        // (polygon, circle, path) where we can't expand the shape.
+        if (shapeWidth > 0) {
+          const currentFoW = parseFloat(foEl.getAttribute('width') ?? '0');
+          if (currentFoW > shapeWidth) {
+            const excess = currentFoW - shapeWidth;
+            const currentFoX = parseFloat(foEl.getAttribute('x') ?? '0');
+            foEl.setAttribute('width', String(shapeWidth));
+            foEl.setAttribute('x', String(currentFoX + excess / 2));
+          }
+        }
       });
     });
 
