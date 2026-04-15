@@ -17,12 +17,14 @@ export function buildPlaybackApiJs(): string {
       if (s.activateNodes) s.activateNodes.forEach(function(nid) {
         if (nodeMap[nid]) {
           nodeMap[nid].classList.add('soom-node-completed');
+          nodeMap[nid].style.filter = 'drop-shadow(-4px 7px 12px var(--soom-shadow-completed))';
         }
       });
       if (s.activateEdges) s.activateEdges.forEach(function(eid) {
         var info = EDGE_INFO[eid];
         if (info && info.target && nodeMap[info.target]) {
           nodeMap[info.target].classList.add('soom-node-completed');
+          nodeMap[info.target].style.filter = 'drop-shadow(-4px 7px 12px var(--soom-shadow-completed))';
         }
         var edge = resolveEdge(eid);
         if (edge) {

@@ -14,7 +14,7 @@ export function buildTimelineJs(): string {
 
   // Initial state via timeline.set() — seekable source of truth
   Object.keys(nodeMap).forEach(function(nid) {
-    timeline.set(nodeMap[nid], { opacity: 0.4, filter: 'drop-shadow(2px 3px 4px var(--soom-shadow-rest))' }, 0);
+    timeline.set(nodeMap[nid], { opacity: 0.4, filter: 'drop-shadow(-4px 6px 10px var(--soom-shadow-rest))' }, 0);
   });
   Object.keys(edgeMap).forEach(function(eid) {
     timeline.set(edgeMap[eid].path, { strokeDashoffset: edgeTotalLens[eid] || 300, opacity: 0.2 }, 0);
@@ -62,7 +62,7 @@ export function buildTimelineJs(): string {
       }, offset);
       // Shadow elevation: node rises on activate
       timeline.add(nodeMap[nid], {
-        filter: ['drop-shadow(2px 3px 4px var(--soom-shadow-rest))', 'drop-shadow(4px 8px 12px var(--soom-shadow-active))'],
+        filter: ['drop-shadow(-4px 6px 10px var(--soom-shadow-rest))', 'drop-shadow(-6px 10px 16px var(--soom-shadow-active))'],
         duration: 150,
       }, offset);
     });
@@ -110,7 +110,7 @@ export function buildTimelineJs(): string {
             }, offset + duration);
             // Shadow elevation on target node activate
             timeline.add(nodeMap[nid], {
-              filter: ['drop-shadow(2px 3px 4px var(--soom-shadow-rest))', 'drop-shadow(4px 8px 12px var(--soom-shadow-active))'],
+              filter: ['drop-shadow(-4px 6px 10px var(--soom-shadow-rest))', 'drop-shadow(-6px 10px 16px var(--soom-shadow-active))'],
               duration: 150,
             }, offset + duration);
           })(targetNodeId, tFromOpacity);
@@ -130,7 +130,7 @@ export function buildTimelineJs(): string {
       }, completeOffset);
       // Settle shadow: shrink back from active elevation
       timeline.add(nodeMap[nid], {
-        filter: ['drop-shadow(4px 8px 12px var(--soom-shadow-active))', 'drop-shadow(2px 4px 6px var(--soom-shadow-completed))'],
+        filter: ['drop-shadow(-6px 10px 16px var(--soom-shadow-active))', 'drop-shadow(-4px 7px 12px var(--soom-shadow-completed))'],
         duration: 200, ease: 'outQuad',
       }, completeOffset);
     });

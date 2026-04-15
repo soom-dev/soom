@@ -36,9 +36,9 @@ export const darkTheme = {
       --soom-subgraph-border: #5B7BAD;
       --soom-subgraph-label: #8BAAC8;
       --soom-cluster-text: #A8C4EC;
-      --soom-shadow-rest: rgba(0, 0, 0, 0.5);
-      --soom-shadow-active: rgba(0, 0, 0, 0.6);
-      --soom-shadow-completed: rgba(0, 0, 0, 0.45);
+      --soom-shadow-rest: rgba(0, 0, 0, 0.55);
+      --soom-shadow-active: rgba(0, 0, 0, 0.7);
+      --soom-shadow-completed: rgba(0, 0, 0, 0.5);
     }
   `,
 };
