@@ -2,23 +2,13 @@ import { describe, it, expect } from 'bun:test';
 import { postProcessSvg } from '../../src/render/post-process.js';
 
 describe('postProcessSvg', () => {
-  it('should inject glow filter into existing defs', () => {
+  it('should inject into existing defs', () => {
     const svg = '<svg><defs><filter id="existing"/></defs><rect/></svg>';
     const result = postProcessSvg(svg);
-    expect(result).toContain('id="soom-glow"');
-    expect(result).toContain('feGaussianBlur');
     expect(result).toContain('id="existing"');
   });
 
-  it('should create defs with glow filter when none exist', () => {
-    const svg = '<svg viewBox="0 0 100 100"><rect/></svg>';
-    const result = postProcessSvg(svg);
-    expect(result).toContain('<defs>');
-    expect(result).toContain('id="soom-glow"');
-    expect(result).toContain('feGaussianBlur');
-  });
-
-  it('should preserve existing svg attributes when creating defs', () => {
+  it('should preserve existing svg attributes', () => {
     const svg = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect/></svg>';
     const result = postProcessSvg(svg);
     expect(result).toContain('viewBox="0 0 100 100"');
@@ -55,17 +45,9 @@ describe('postProcessSvg', () => {
     expect(result).not.toContain('data-node-id');
   });
 
-  it('should include feComposite in glow filter', () => {
-    const svg = '<svg><rect/></svg>';
-    const result = postProcessSvg(svg);
-    expect(result).toContain('feComposite');
-    expect(result).toContain('SourceGraphic');
-  });
-
   it('should handle SVG with no node elements gracefully', () => {
     const svg = '<svg><rect width="100" height="100"/></svg>';
     const result = postProcessSvg(svg);
-    expect(result).toContain('soom-glow');
     expect(result).toContain('rect');
   });
 
@@ -92,8 +74,7 @@ describe('postProcessSvg', () => {
   it('should not double-inject defs if called twice', () => {
     const svg = '<svg><defs></defs><rect/></svg>';
     const result1 = postProcessSvg(svg);
-    // The second call would inject into existing defs again
-    const matches = result1.match(/soom-glow/g);
-    expect(matches).toHaveLength(1);
+    const defsMatches = result1.match(/<defs>/g);
+    expect(defsMatches).toHaveLength(1);
   });
 });

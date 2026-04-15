@@ -17,14 +17,14 @@ export function buildPlaybackApiJs(): string {
       if (s.activateNodes) s.activateNodes.forEach(function(nid) {
         if (nodeMap[nid]) {
           nodeMap[nid].classList.add('soom-node-completed');
-          startGlowPulse(nid);
+          startHoverFloat(nid);
         }
       });
       if (s.activateEdges) s.activateEdges.forEach(function(eid) {
         var info = EDGE_INFO[eid];
         if (info && info.target && nodeMap[info.target]) {
           nodeMap[info.target].classList.add('soom-node-completed');
-          startGlowPulse(info.target);
+          startHoverFloat(info.target);
         }
         var edge = resolveEdge(eid);
         if (edge) {

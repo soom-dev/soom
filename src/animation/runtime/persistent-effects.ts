@@ -1,7 +1,7 @@
 export function buildPersistentEffectsJs(): string {
   return `
-  var glowAnimations = [];
   var marchAnimations = [];
+  var hoverAnimations = [];
   var focusLoops = [];
   var focusParticles = [];
 
@@ -16,21 +16,19 @@ export function buildPersistentEffectsJs(): string {
 
   function resetPersistentEffects() {
     stopFocusLoops();
-    glowAnimations.forEach(function(a) { if (a) a.revert(); });
-    glowAnimations = [];
     marchAnimations.forEach(function(a) { if (a) a.revert(); });
     marchAnimations = [];
-    Object.keys(nodeMap).forEach(function(nid) {
-      var shape = nodeMap[nid].querySelector('rect, polygon, circle');
-      if (shape) shape.style.removeProperty('filter');
-    });
     Object.keys(edgeMap).forEach(function(eid) {
       var p = edgeMap[eid].path;
       p.style.removeProperty('stroke-dasharray');
       p.style.removeProperty('stroke-width');
     });
+    hoverAnimations.forEach(function(a) { if (a) a.revert(); });
+    hoverAnimations = [];
     Object.keys(nodeMap).forEach(function(nid) {
       nodeMap[nid].classList.remove('soom-node-active', 'soom-node-completed');
+      // Reset lift to 0 and restore original transform
+      if (nodeLift[nid]) { nodeLift[nid].lift = 0; applyLift(nid); }
     });
     Object.keys(edgeMap).forEach(function(eid) {
       edgeMap[eid].path.classList.remove('soom-edge-completed');
@@ -79,18 +77,34 @@ export function buildPersistentEffectsJs(): string {
     }
   }
 
-  function startGlowPulse(nid) {
-    if (!nodeMap[nid]) return;
-    var shape = nodeMap[nid].querySelector('rect, polygon, circle');
+  function startHoverFloat(nid) {
+    if (!nodeLift[nid] || !nodeOrigY[nid]) return;
+    // Animate position: bob up and down
+    var posAnim = anime.animate(nodeLift[nid], {
+      lift: [-2, -12],
+      duration: 700,
+      loop: true,
+      alternate: true,
+      ease: 'inOutSine',
+      composition: 'none',
+      onRender: function() { applyLift(nid); },
+    });
+    hoverAnimations.push(posAnim);
+    // Animate shadow in sync: larger/further when high, smaller when low
+    var shape = nodeMap[nid].querySelector('rect, polygon, circle, ellipse');
     if (shape) {
-      var anim = anime.animate(shape, {
-        filter: ['drop-shadow(0 0 4px currentColor)', 'drop-shadow(0 0 14px currentColor)'],
-        duration: 1500,
-        ease: 'inOutSine',
+      var shadowAnim = anime.animate(shape, {
+        filter: [
+          'drop-shadow(2px 3px 4px var(--soom-shadow-completed))',
+          'drop-shadow(5px 10px 16px var(--soom-shadow-active))',
+        ],
+        duration: 700,
         loop: true,
         alternate: true,
+        ease: 'inOutSine',
+        composition: 'none',
       });
-      glowAnimations.push(anim);
+      hoverAnimations.push(shadowAnim);
     }
   }
 

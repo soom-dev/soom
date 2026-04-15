@@ -4,14 +4,6 @@
 export function postProcessSvg(svg: string, mermaidSource?: string): string {
   let result = svg;
 
-  // Inject glow filter into <defs> (or create <defs> if none)
-  const glowFilter = `<filter id="soom-glow"><feGaussianBlur stdDeviation="3" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>`;
-  if (result.includes('<defs>')) {
-    result = result.replace('<defs>', `<defs>${glowFilter}`);
-  } else {
-    result = result.replace(/<svg([^>]*)>/, `<svg$1><defs>${glowFilter}</defs>`);
-  }
-
   // Add data-node-id to .node elements
   result = result.replace(
     /(<g[^>]*class="[^"]*\bnode\b[^"]*"[^>]*id=")([^"]*flowchart-)([^"]*?)(-\d+)(")/g,

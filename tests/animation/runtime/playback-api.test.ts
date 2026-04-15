@@ -29,7 +29,6 @@ describe('buildPlaybackApiJs', () => {
   it('should replay all steps up to target in seekToStep', () => {
     expect(js).toContain('for (var i = 0; i <= n');
     expect(js).toContain('soom-node-completed');
-    expect(js).toContain('startGlowPulse');
     expect(js).toContain('startMarchingLine');
   });
 

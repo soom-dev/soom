@@ -25,11 +25,6 @@ describe('Animation integration', () => {
     expect(html).toContain('<div id="soom-annotations">');
   });
 
-  it('should contain glow filter', async () => {
-    const html = await readFile('/tmp/test-anim-simple.html', 'utf-8');
-    expect(html).toContain('<filter id="soom-glow">');
-  });
-
   it('should contain animation CSS classes', async () => {
     const html = await readFile('/tmp/test-anim-simple.html', 'utf-8');
     expect(html).toContain('soom-node-active');
@@ -52,7 +47,6 @@ describe('Animation integration', () => {
       const html = await readFile(`/tmp/test-anim-${name}.html`, 'utf-8');
       expect(html).toContain('soomAnimation');
       expect(html).toContain('soom-sequence');
-      expect(html).toContain('soom-glow');
       expect(html).toContain('createTimeline');
       expect(html).toContain('createDrawable');
     }

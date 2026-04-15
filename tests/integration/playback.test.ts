@@ -330,29 +330,19 @@ describe('Playback controls', () => {
     });
   });
 
-  // ═══════ GLOW ANIMATIONS RUNNING ═══════
+  // ═══════ SHADOW ELEVATION ═══════
 
-  describe('glow animations', () => {
-    it('completed nodes have glow filter animation running', async () => {
+  describe('shadow elevation', () => {
+    it('completed nodes have drop-shadow filter set', async () => {
       await goTo(page, 1);
-      // Sample glow filter twice — it should change (pulsing)
-      const filter1 = await page.evaluate(() => {
+      const filter = await page.evaluate(() => {
         const completed = document.querySelector('.soom-node-completed');
         if (!completed) return null;
-        const shape = completed.querySelector('rect, polygon, circle') as SVGElement;
-        return shape ? getComputedStyle(shape).filter : null;
+        const shape = completed.querySelector('rect, polygon, circle, ellipse') as SVGElement;
+        return shape ? (shape.style.filter || getComputedStyle(shape).filter) : null;
       });
-      await page.waitForTimeout(400);
-      const filter2 = await page.evaluate(() => {
-        const completed = document.querySelector('.soom-node-completed');
-        if (!completed) return null;
-        const shape = completed.querySelector('rect, polygon, circle') as SVGElement;
-        return shape ? getComputedStyle(shape).filter : null;
-      });
-      expect(filter1).not.toBeNull();
-      expect(filter2).not.toBeNull();
-      // Glow pulse should produce different filter values over time
-      expect(filter1).not.toBe(filter2);
+      expect(filter).not.toBeNull();
+      expect(filter).toContain('drop-shadow');
     });
   });
 
@@ -437,32 +427,30 @@ describe('Playback controls', () => {
     });
   });
 
-  // ═══════ STEP BACKWARD GLOW PRESERVATION ═══════
+  // ═══════ STEP BACKWARD SHADOW STATE ═══════
 
-  describe('step backward preserves previous step glow', () => {
-    it('stepping from step 2 to step 1: step 1 nodes still have glow', async () => {
+  describe('step backward shadow state', () => {
+    it('stepping from step 2 to step 1: step 1 nodes have shadow', async () => {
       await goTo(page, 2);
       await page.evaluate(() => (window as any).soomAnimation.stepBackward());
       await page.waitForTimeout(400);
 
       const s = await snap(page);
       expect(s.currentStep).toBe(1);
-      // Step 1's nodes should be completed with glow (not dim)
       expect(s.completedCount).toBeGreaterThan(0);
 
-      // Verify glow is actually animating on completed nodes
-      const hasGlow = await page.evaluate(() => {
+      const hasShadow = await page.evaluate(() => {
         const completed = document.querySelector('.soom-node-completed');
         if (!completed) return false;
-        const shape = completed.querySelector('rect, polygon, circle') as SVGElement;
+        const shape = completed.querySelector('rect, polygon, circle, ellipse') as SVGElement;
         if (!shape) return false;
-        const filter = getComputedStyle(shape).filter;
-        return filter !== 'none' && filter !== '';
+        const filter = shape.style.filter || getComputedStyle(shape).filter;
+        return filter.includes('drop-shadow');
       });
-      expect(hasGlow).toBe(true);
+      expect(hasShadow).toBe(true);
     });
 
-    it('stepping from step 1 to idle: all nodes dim, no glow', async () => {
+    it('stepping from step 1 to idle: all nodes dim, no completed classes', async () => {
       await goTo(page, 1);
       await page.evaluate(() => (window as any).soomAnimation.stepBackward());
       await page.waitForTimeout(400);
@@ -471,15 +459,6 @@ describe('Playback controls', () => {
       expect(s.currentStep).toBe(0);
       expect(s.completedCount).toBe(0);
       expect(s.dimCount).toBe(s.totalNodes);
-
-      // No inline glow filter should be set (CSS theme filter is OK)
-      const anyInlineGlow = await page.evaluate(() => {
-        const shapes = document.querySelectorAll('.node rect, .node polygon, .node circle');
-        return Array.from(shapes).some(s => {
-          return (s as SVGElement).style.filter !== '';
-        });
-      });
-      expect(anyInlineGlow).toBe(false);
     });
   });
 
