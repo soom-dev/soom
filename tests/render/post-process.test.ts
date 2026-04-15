@@ -69,6 +69,26 @@ describe('postProcessSvg', () => {
     expect(result).toContain('rect');
   });
 
+  it('should annotate cluster elements with data-depth from mermaid source', () => {
+    const svg = [
+      '<svg>',
+      '<g class="cluster" id="soom-render-outer"><rect/></g>',
+      '<g class="cluster" id="soom-render-inner"><rect/></g>',
+      '</svg>',
+    ].join('');
+    const mermaidSource = [
+      'flowchart TB',
+      '  subgraph outer["Outer"]',
+      '    subgraph inner["Inner"]',
+      '      A --> B',
+      '    end',
+      '  end',
+    ].join('\n');
+    const result = postProcessSvg(svg, mermaidSource);
+    expect(result).toContain('id="soom-render-outer" data-depth="0"');
+    expect(result).toContain('id="soom-render-inner" data-depth="1"');
+  });
+
   it('should not double-inject defs if called twice', () => {
     const svg = '<svg><defs></defs><rect/></svg>';
     const result1 = postProcessSvg(svg);

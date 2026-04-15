@@ -20,7 +20,7 @@ export async function renderCommand(input: string, options: RenderOptions) {
 
   const selectedTheme = options.theme ?? 'dark';
   const rawSvg = await renderMermaidToSvg(source, selectedTheme);
-  const svg = postProcessSvg(rawSvg);
+  const svg = postProcessSvg(rawSvg, source);
 
   const graph = buildGraphFromSvg(svg, source);
   const sequence = autoSequence(graph);
