@@ -79,7 +79,8 @@ export function buildPersistentEffectsJs(): string {
 
   function startHoverFloat(nid) {
     if (!nodeLift[nid] || !nodeOrigY[nid]) return;
-    var anim = anime.animate(nodeLift[nid], {
+    // Animate position: bob up and down
+    var posAnim = anime.animate(nodeLift[nid], {
       lift: [-2, -12],
       duration: 700,
       loop: true,
@@ -88,7 +89,23 @@ export function buildPersistentEffectsJs(): string {
       composition: 'none',
       onRender: function() { applyLift(nid); },
     });
-    hoverAnimations.push(anim);
+    hoverAnimations.push(posAnim);
+    // Animate shadow in sync: larger/further when high, smaller when low
+    var shape = nodeMap[nid].querySelector('rect, polygon, circle, ellipse');
+    if (shape) {
+      var shadowAnim = anime.animate(shape, {
+        filter: [
+          'drop-shadow(2px 3px 4px var(--soom-shadow-completed))',
+          'drop-shadow(5px 10px 16px var(--soom-shadow-active))',
+        ],
+        duration: 700,
+        loop: true,
+        alternate: true,
+        ease: 'inOutSine',
+        composition: 'none',
+      });
+      hoverAnimations.push(shadowAnim);
+    }
   }
 
   function startMarchingLine(pathEl) {
