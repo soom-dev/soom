@@ -58,10 +58,14 @@ export const baseCss = `
       fill: var(--soom-label-color) !important;
       color: var(--soom-label-color) !important;
     }
-    /* Node label layout: center in foreignObject, prevent overflow */
+    /* Node label layout: center in foreignObject, prevent overflow.
+       Mermaid v11 puts raw text directly inside foreignObject (no wrapper div/span).
+       text-align centers inline text; overflow clips labels exceeding shape bounds. */
     .node foreignObject {
       overflow: hidden !important;
+      text-align: center !important;
     }
+    /* If Mermaid wraps content in a div (varies by version/shape), flex-center it */
     .node foreignObject > div {
       display: flex !important;
       align-items: center !important;
@@ -70,11 +74,13 @@ export const baseCss = `
       height: 100% !important;
       text-align: center !important;
       overflow: hidden !important;
+      padding: 0 !important;
     }
     .nodeLabel {
       overflow: hidden !important;
       word-wrap: break-word !important;
-      padding: 4px 8px !important;
+      text-align: center !important;
+      padding: 8px !important;
       line-height: 1.3 !important;
     }
     /* Edge labels: theme-aware background */

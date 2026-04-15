@@ -14,7 +14,7 @@ describe('Playwright rendering integration', () => {
   it('should render dark theme with soom-dark default class', async () => {
     const html = await readFile('/tmp/test-pw-dark.html', 'utf-8');
     expect(html).toContain('class="soom-dark"');
-    expect(html).toContain('#362F49');
+    expect(html).toContain('#1E2A3A');
   });
 
   it('should render light theme with soom-light default class', async () => {
