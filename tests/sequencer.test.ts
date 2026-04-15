@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { autoSequence } from '../src/sequencer/auto.js';
-import type { AnimaGraph } from '../src/graph/types.js';
+import type { AnimaGraph } from '../src/types.js';
 
 describe('Auto Sequencer', () => {
   it('should produce a linear sequence for a simple graph', () => {

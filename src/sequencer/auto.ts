@@ -1,4 +1,4 @@
-import type { AnimaGraph, AnimationSequence, AnimationStep } from '../graph/types.js';
+import type { AnimaGraph, AnimationSequence, AnimationStep } from '../types.js';
 
 export function autoSequence(graph: AnimaGraph, defaultDuration = 800): AnimationSequence {
   const inDegree = new Map<string, number>();

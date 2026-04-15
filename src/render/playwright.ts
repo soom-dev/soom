@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
-import type { ThemeName } from '../renderer/html.js';
+import type { ThemeName } from '../output/html.js';
 
 function findMermaidBundlePath(): string {
   const require = createRequire(import.meta.url);
@@ -46,8 +46,6 @@ export async function renderMermaidToSvg(source: string, theme: ThemeName): Prom
       { source, mermaidTheme: theme === 'dark' ? 'dark' : 'default' }
     );
 
-    // Fix 2: Inject rendered SVG into DOM and measure actual label widths
-    // before returning — uses real browser layout to prevent clipping.
     await page.evaluate(
       ({ svgContent }: { svgContent: string }) => {
         const container = document.getElementById('container');
@@ -62,7 +60,6 @@ export async function renderMermaidToSvg(source: string, theme: ThemeName): Prom
 
       const svgDOMRect = svgEl.getBoundingClientRect();
       const viewBox = svgEl.viewBox.baseVal;
-      // Determine SVG user units per CSS pixel for coordinate conversion
       const vbWidth =
         viewBox.width || parseFloat(svgEl.getAttribute('width') || '0') || svgDOMRect.width;
       if (svgDOMRect.width === 0 || vbWidth === 0) return;
@@ -73,12 +70,10 @@ export async function renderMermaidToSvg(source: string, theme: ThemeName): Prom
         const foEl = nodeEl.querySelector<SVGForeignObjectElement>('foreignObject');
         if (!foEl) return;
 
-        // Temporarily expand foreignObject so content can render at natural width
         const origFoWidth = foEl.getAttribute('width') ?? '';
         foEl.setAttribute('width', '3000');
 
         const labelEl = foEl.querySelector<HTMLElement>('.nodeLabel, p, span, div');
-        // Fix 2: override CSS constraints that prevent natural width measurement
         if (labelEl) {
           labelEl.style.whiteSpace = 'nowrap';
           labelEl.style.maxWidth = 'none';
@@ -89,14 +84,12 @@ export async function renderMermaidToSvg(source: string, theme: ThemeName): Prom
 
         if (naturalWidthPx <= 0) return;
 
-        // Add horizontal padding and convert to SVG units
         const requiredSvg = (naturalWidthPx + 32) * pxToSvg;
         const currentFoW = parseFloat(foEl.getAttribute('width') ?? '0');
         if (requiredSvg <= currentFoW) return;
 
         const diff = requiredSvg - currentFoW;
 
-        // Widen rect shape if present (polygon/circle nodes skip shape resize)
         if (shapeEl) {
           const currentShapeW = parseFloat(shapeEl.getAttribute('width') ?? '0');
           if (requiredSvg > currentShapeW) {

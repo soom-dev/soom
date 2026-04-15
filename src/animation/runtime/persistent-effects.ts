@@ -1,0 +1,110 @@
+export function buildPersistentEffectsJs(): string {
+  return `
+  var glowAnimations = [];
+  var marchAnimations = [];
+  var focusLoops = [];
+  var focusParticles = [];
+
+  function stopFocusLoops() {
+    focusLoops.forEach(function(a) { if (a) a.revert(); });
+    focusLoops = [];
+    focusParticles.forEach(function(el) {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    });
+    focusParticles = [];
+  }
+
+  function resetPersistentEffects() {
+    stopFocusLoops();
+    glowAnimations.forEach(function(a) { if (a) a.revert(); });
+    glowAnimations = [];
+    marchAnimations.forEach(function(a) { if (a) a.revert(); });
+    marchAnimations = [];
+    Object.keys(nodeMap).forEach(function(nid) {
+      var shape = nodeMap[nid].querySelector('rect, polygon, circle');
+      if (shape) shape.style.removeProperty('filter');
+    });
+    Object.keys(edgeMap).forEach(function(eid) {
+      var p = edgeMap[eid].path;
+      p.style.removeProperty('stroke-dasharray');
+      p.style.removeProperty('stroke-width');
+    });
+    Object.keys(nodeMap).forEach(function(nid) {
+      nodeMap[nid].classList.remove('soom-node-active', 'soom-node-completed');
+    });
+    Object.keys(edgeMap).forEach(function(eid) {
+      edgeMap[eid].path.classList.remove('soom-edge-completed');
+      edgeMap[eid].path.style.markerEnd = 'none';
+      edgeMap[eid].path.style.markerStart = 'none';
+    });
+    if (annotAnim) annotAnim.opacity(0);
+    if (annotEl) {
+      while (annotEl.firstChild) annotEl.removeChild(annotEl.firstChild);
+    }
+  }
+
+  function startFocusLoops() {
+    var stepIdx = getCurrentStepIndex();
+    if (stepIdx < 0 || stepIdx >= steps.length) return;
+    var step = steps[stepIdx];
+    if (!step.activateEdges || step.activateEdges.length === 0) return;
+
+    var currentTime = timeline.currentTime;
+    var activeEdgeIds = [];
+
+    step.activateEdges.forEach(function(eid) {
+      var timing = edgeTimingMap[eid];
+      if (!timing) return;
+      if (currentTime < timing.offset) return;
+      if (currentTime >= timing.offset + timing.duration) return;
+
+      activeEdgeIds.push(eid);
+      var edge = resolveEdge(eid);
+      if (!edge) return;
+      var pathEl = edge.path;
+      var totalLen = edgeTotalLens[eid] || 300;
+      pathEl.style.strokeDasharray = String(totalLen);
+      var focusAnim = anime.animate(pathEl, {
+        strokeDashoffset: [0, totalLen],
+        duration: 700,
+        loop: true,
+        alternate: true,
+        ease: 'inOutSine',
+      });
+      focusLoops.push(focusAnim);
+    });
+
+    if (activeEdgeIds.length > 0) {
+      setPauseAnnotation(activeEdgeIds);
+    }
+  }
+
+  function startGlowPulse(nid) {
+    if (!nodeMap[nid]) return;
+    var shape = nodeMap[nid].querySelector('rect, polygon, circle');
+    if (shape) {
+      var anim = anime.animate(shape, {
+        filter: ['drop-shadow(0 0 4px currentColor)', 'drop-shadow(0 0 14px currentColor)'],
+        duration: 1500,
+        ease: 'inOutSine',
+        loop: true,
+        alternate: true,
+      });
+      glowAnimations.push(anim);
+    }
+  }
+
+  function startMarchingLine(pathEl) {
+    var baseWidth = parseFloat(pathEl.getAttribute('stroke-width') || '1');
+    pathEl.style.strokeWidth = String(baseWidth * 1.5);
+    pathEl.style.strokeDasharray = marchDash + ' ' + marchGap;
+    var anim = anime.animate(pathEl, {
+      strokeDashoffset: [0, -marchRepeat],
+      loop: true,
+      duration: Math.round(marchRepeat / medianEdgeLen * 3000),
+      ease: 'linear',
+      composition: 'none',
+    });
+    marchAnimations.push(anim);
+  }`;
+}
