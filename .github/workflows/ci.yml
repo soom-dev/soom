@@ -89,6 +89,7 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
       - run: bun test
+      - run: bun run test:e2e
 
   build:
     name: Build
