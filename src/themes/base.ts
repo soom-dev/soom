@@ -59,6 +59,7 @@ export const baseCss = `
     .node foreignObject {
       overflow: hidden !important;
       text-align: center !important;
+      font-weight: 700 !important;
     }
     /* If Mermaid wraps content in a div (varies by version/shape), flex-center it */
     .node foreignObject > div {
@@ -77,6 +78,7 @@ export const baseCss = `
       text-align: center !important;
       padding: 8px !important;
       line-height: 1.3 !important;
+      font-weight: 700 !important;
     }
     /* Edge labels: theme-aware background */
     .edgeLabel {
@@ -153,6 +155,7 @@ export const baseCss = `
     .soom-edge-completed { stroke: var(--soom-edge-stroke-active) !important; opacity: 1 !important; }
     /* Annotation panel */
     #soom-annotations {
+      display: none;
       position: fixed; bottom: 128px; left: 50%; transform: translateX(-50%);
       background: var(--soom-annot-bg); color: var(--soom-annot-text); padding: 14px 28px;
       border-radius: 10px; font-size: 18px; z-index: 20;

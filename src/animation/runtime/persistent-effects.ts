@@ -86,21 +86,18 @@ export function buildPersistentEffectsJs(): string {
     });
     hoverAnimations.push(posAnim);
     // Animate shadow in sync: larger/further when high, smaller when low
-    var shape = nodeMap[nid].querySelector('rect, polygon, circle, ellipse');
-    if (shape) {
-      var shadowAnim = anime.animate(shape, {
-        filter: [
-          'drop-shadow(2px 3px 4px var(--soom-shadow-completed))',
-          'drop-shadow(5px 10px 16px var(--soom-shadow-active))',
-        ],
-        duration: 700,
-        loop: true,
-        alternate: true,
-        ease: 'inOutSine',
-        composition: 'none',
-      });
-      hoverAnimations.push(shadowAnim);
-    }
+    var shadowAnim = anime.animate(nodeMap[nid], {
+      filter: [
+        'drop-shadow(-4px 7px 12px var(--soom-shadow-completed))',
+        'drop-shadow(-6px 10px 16px var(--soom-shadow-active))',
+      ],
+      duration: 700,
+      loop: true,
+      alternate: true,
+      ease: 'inOutSine',
+      composition: 'none',
+    });
+    hoverAnimations.push(shadowAnim);
   }
 
   function startMarchingLine(pathEl) {
