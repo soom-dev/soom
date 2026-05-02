@@ -1,0 +1,46 @@
+sequenceDiagram
+    actor User
+    participant CDN as CloudFront
+    participant ALB as Application LB
+    participant App as App Server
+    participant RDS as RDS Primary
+    participant Replica as RDS Read Replica
+    participant ElastiCache as ElastiCache
+    participant S3 as S3 Bucket
+    participant Lambda as Lambda@Edge
+    participant WAF as AWS WAF
+
+    User->>CDN: GET /dashboard
+    CDN->>WAF: Inspect request
+    WAF-->>CDN: Allow (rate limit OK)
+    alt Cache Hit
+        CDN-->>User: 200 (cached HTML)
+    else Cache Miss
+        CDN->>ALB: Forward request
+        ALB->>App: Route to healthy instance
+        App->>ElastiCache: GET dashboard:{userId}
+        alt Redis Hit
+            ElastiCache-->>App: cached dashboard JSON
+        else Redis Miss
+            App->>Replica: SELECT dashboard data
+            Replica-->>App: query results
+            App->>ElastiCache: SET dashboard:{userId} EX 300
+        end
+        App->>S3: getSignedUrl(avatar.jpg)
+        S3-->>App: presigned URL (15min TTL)
+        App-->>ALB: 200 rendered HTML
+        ALB-->>CDN: Response + cache headers
+        CDN-->>User: 200 HTML
+    end
+
+    User->>CDN: POST /settings (update profile)
+    CDN->>ALB: Forward (no-cache)
+    ALB->>App: Route request
+    App->>RDS: UPDATE users SET name=? WHERE id=?
+    RDS-->>App: 1 row affected
+    App->>ElastiCache: DEL dashboard:{userId}
+    App->>S3: putObject(new-avatar.jpg)
+    S3-->>App: 200 OK
+    App->>Lambda: invalidateCache(/dashboard)
+    Lambda->>CDN: Create invalidation
+    App-->>User: 200 Settings saved

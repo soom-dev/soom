@@ -1,0 +1,41 @@
+sequenceDiagram
+    actor Client as Mobile App
+    participant GW as API Gateway
+    participant LLM as LLM Service
+    participant RAG as RAG Pipeline
+    participant Vector as Vector DB
+    participant KB as Knowledge Base
+    participant Guard as Guardrails
+
+    Client->>GW: POST /chat {message, conversation_id}
+    GW->>Guard: contentFilter(message)
+    alt Blocked Content
+        Guard-->>GW: rejected: policy_violation
+        GW-->>Client: 400 Content policy violation
+    else Allowed
+        Guard-->>GW: passed
+        GW->>RAG: retrieveContext(message)
+        RAG->>Vector: similarity_search(embedding, top_k=5)
+        Vector-->>RAG: 5 document chunks
+        RAG->>RAG: rerank + deduplicate
+        RAG-->>GW: context_docs[]
+
+        GW->>LLM: complete(system_prompt, context_docs, message)
+        Note over LLM: Streaming response
+        loop Token Streaming
+            LLM-->>GW: token chunk
+            GW-->>Client: SSE: token chunk
+        end
+        LLM-->>GW: [DONE]
+
+        GW->>Guard: outputFilter(response)
+        alt Hallucination Detected
+            Guard-->>GW: flagged: low_confidence
+            GW-->>Client: ⚠️ Response may be inaccurate
+        else Clean
+            Guard-->>GW: passed
+        end
+
+        GW->>KB: logInteraction(conversation_id, message, response)
+        GW-->>Client: SSE: [DONE]
+    end

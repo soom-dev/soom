@@ -5,11 +5,11 @@ Thanks for your interest in contributing! Here's how to get started.
 ## Development Environment
 
 ```bash
-git clone https://github.com/hansoom-dev/soom.git
+git clone https://github.com/soom-dev/soom.git
 cd soom
 bun install
 bun test          # run tests
-bun run dev render examples/simple.mmd -o /tmp/preview.html  # test locally
+bun run dev render examples/basic/flow-simple.mmd -o /tmp/preview.html  # test locally
 ```
 
 Requires [Bun](https://bun.sh/) >= 1.0.0. Also compatible with Node >= 18.
@@ -64,7 +64,7 @@ Don't manually fix style issues — just run the formatters.
 
 ## Proposing Features
 
-Significant features or architectural changes should be discussed in a [GitHub Issue](https://github.com/hansoom-dev/soom/issues) before implementation. This avoids wasted effort on approaches that don't align with the project direction.
+Significant features or architectural changes should be discussed in a [GitHub Issue](https://github.com/soom-dev/soom/issues) before implementation. This avoids wasted effort on approaches that don't align with the project direction.
 
 ## License
 

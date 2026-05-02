@@ -1,0 +1,48 @@
+sequenceDiagram
+    participant Scheduler as ML Scheduler
+    participant Trainer as Training Worker
+    participant DataLoader as Data Pipeline
+    participant S3 as Feature Store (S3)
+    participant GPU as GPU Cluster
+    participant MLflow as MLflow Registry
+    participant Eval as Eval Service
+    participant Staging as Staging Endpoint
+    participant Prod as Production Endpoint
+    participant Monitor as Model Monitor
+
+    Scheduler->>DataLoader: triggerPipeline(dataset_v3)
+    DataLoader->>S3: read raw features
+    S3-->>DataLoader: 2.4M records
+    DataLoader->>DataLoader: validate schema + split train/val/test
+    DataLoader->>S3: write processed datasets
+    DataLoader-->>Scheduler: pipeline complete
+
+    Scheduler->>Trainer: startTraining(config, dataset_v3)
+    Trainer->>S3: load train + val splits
+    Trainer->>GPU: allocate 4x A100
+    loop Epochs 1..50
+        Trainer->>GPU: forward + backward pass
+        GPU-->>Trainer: gradients
+        Trainer->>Trainer: update weights
+        Trainer->>MLflow: log metrics (loss, accuracy)
+    end
+    Trainer->>MLflow: registerModel(model_v3, metrics)
+    Trainer->>GPU: release allocation
+    Trainer-->>Scheduler: training complete
+
+    Scheduler->>Eval: evaluate(model_v3, test_split)
+    Eval->>S3: load test split
+    Eval->>MLflow: loadModel(model_v3)
+    Eval->>Eval: run inference + compute metrics
+    Eval->>MLflow: logEvaluation(accuracy=0.94, f1=0.91)
+    alt Meets Threshold
+        Eval-->>Scheduler: PASSED
+        Scheduler->>Staging: deploy(model_v3)
+        Staging->>Monitor: shadow traffic test (1hr)
+        Monitor-->>Scheduler: latency p99=45ms, no drift
+        Scheduler->>Prod: promote(model_v3)
+        Prod-->>Scheduler: live
+    else Below Threshold
+        Eval-->>Scheduler: FAILED (f1=0.78)
+        Scheduler->>MLflow: archiveModel(model_v3, reason="below_threshold")
+    end

@@ -46,8 +46,8 @@ Arguments:
 Options:
   -o, --output <path>    output HTML file path (default: input with .html extension)
   -t, --theme <theme>    color theme: dark or light (default: dark)
-      --open             open the output file in the default browser
-  -V, --version          output the version number
+  -O, --open             open the output file in the default browser
+  -v, --version          output the version number
   -h, --help             display help for command
 ```
 
@@ -64,7 +64,7 @@ soom render examples/infrastructure/flow-aws-eks.mmd --open
 soom render examples/pipelines/flow-cicd-k8s.mmd --open
 ```
 
-Categories include `basic/`, `microservices/`, `ai/`, `infrastructure/`, and `pipelines/`.
+Categories: `basic/`, `simple/`, `microservices/`, `ai/`, `infrastructure/`, `pipelines/`, `meta/`, `stress/`.
 
 ## Development
 

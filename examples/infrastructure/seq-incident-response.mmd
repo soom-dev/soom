@@ -1,0 +1,40 @@
+sequenceDiagram
+    participant Prometheus as Prometheus
+    participant AlertMgr as Alertmanager
+    participant PagerDuty as PagerDuty
+    participant Slack as Slack
+    participant OnCall as On-Call Engineer
+    participant Grafana as Grafana
+    participant K8s as Kubernetes
+    participant App as App Pods
+
+    Prometheus->>Prometheus: Evaluate alert rules (every 15s)
+    Prometheus->>AlertMgr: FIRING: HighErrorRate (>5% 5xx for 5min)
+    AlertMgr->>AlertMgr: Group + deduplicate
+    
+    par Route to channels
+        AlertMgr->>PagerDuty: trigger incident (P1)
+        PagerDuty-->>OnCall: Page: SMS + phone call
+    and
+        AlertMgr->>Slack: #incidents: 🔴 HighErrorRate on prod-api
+    end
+
+    OnCall->>Grafana: Open dashboard
+    Grafana->>Prometheus: query_range(rate(http_5xx[5m]))
+    Prometheus-->>Grafana: time series data
+    Grafana-->>OnCall: Error spike at 14:32 UTC
+
+    OnCall->>K8s: kubectl get pods -l app=api
+    K8s-->>OnCall: 3/5 pods CrashLoopBackOff
+    OnCall->>K8s: kubectl logs api-pod-abc123
+    K8s-->>OnCall: OOMKilled — memory limit exceeded
+
+    OnCall->>K8s: kubectl rollback deployment/api
+    K8s->>App: Rolling restart (previous image)
+    App-->>K8s: All pods healthy
+    K8s-->>OnCall: Rollback complete
+
+    Prometheus->>AlertMgr: RESOLVED: HighErrorRate
+    AlertMgr->>Slack: #incidents: ✅ HighErrorRate resolved
+    AlertMgr->>PagerDuty: resolve incident
+    OnCall->>Slack: Postmortem: OOM due to memory leak in v1.2.3

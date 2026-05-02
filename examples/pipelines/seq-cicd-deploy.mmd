@@ -1,0 +1,35 @@
+sequenceDiagram
+    actor Dev as Developer
+    participant GH as GitHub
+    participant CI as CI Runner
+    participant Registry as Container Registry
+    participant ArgoCD as ArgoCD
+    participant K8s as Kubernetes
+    participant Slack as Slack
+
+    Dev->>GH: git push (feature branch)
+    GH->>CI: webhook: push event
+    CI->>CI: Install dependencies
+    CI->>CI: Run lint + unit tests
+    alt Tests Fail
+        CI-->>GH: ❌ status check failed
+        CI->>Slack: "Build failed on feature/xyz"
+        GH-->>Dev: PR blocked
+    else Tests Pass
+        CI->>CI: Build container image
+        CI->>CI: Run security scan (Trivy)
+        CI->>Registry: docker push app:sha-abc123
+        CI-->>GH: ✅ all checks passed
+    end
+
+    Dev->>GH: Merge PR to main
+    GH->>CI: webhook: merge event
+    CI->>CI: Build production image
+    CI->>Registry: docker push app:v1.2.3
+    CI->>GH: Update k8s/deployment.yaml (image tag)
+    GH-->>ArgoCD: GitOps sync detected
+    ArgoCD->>K8s: kubectl apply (rolling update)
+    K8s->>K8s: Rolling restart pods
+    K8s-->>ArgoCD: Deployment healthy
+    ArgoCD->>Slack: "v1.2.3 deployed to production ✅"
+    Slack-->>Dev: Deployment notification

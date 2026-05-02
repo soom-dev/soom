@@ -1,0 +1,144 @@
+sequenceDiagram
+    actor User as End User
+    participant Browser
+    participant CDN
+    participant Gateway as API Gateway
+    participant Auth as Auth Service
+    participant BFF as BFF Layer
+    participant OrderSvc as Order Service
+    participant PaymentSvc as Payment Service
+    participant InventorySvc as Inventory
+    participant Queue as Message Queue
+    participant Worker as Async Worker
+    participant DB as PostgreSQL
+    participant Cache as Redis
+    participant ExtAPI as External API
+    participant Webhook as Webhook Handler
+
+    autonumber
+
+    Note over User,Webhook: === FULL SEQUENCE DIAGRAM STRESS TEST ===
+
+    %% Basic messages: solid, dotted, open arrow
+    User->>Browser: Click "Place Order"
+    Browser->>CDN: GET /checkout (static assets)
+    CDN-->>Browser: 200 cached bundle
+    Browser->>Gateway: POST /api/orders (JSON body)
+    Gateway-)Auth: async: validate JWT
+    Auth--)Gateway: token valid (async response)
+
+    %% Activation boxes
+    activate Gateway
+    Gateway->>BFF: createOrder(payload)
+    activate BFF
+
+    %% Notes: left, right, over single, over multiple
+    Note left of BFF: Rate limit check
+    Note right of Auth: JWT exp in 15min
+    Note over BFF: Orchestration layer
+    Note over BFF,OrderSvc: Saga pattern coordination
+
+    %% Alt/else (conditional)
+    alt Premium Customer
+        BFF->>OrderSvc: createPriorityOrder(payload)
+        Note over OrderSvc: Skip queue, direct process
+    else Standard Customer
+        BFF->>OrderSvc: createStandardOrder(payload)
+    end
+
+    activate OrderSvc
+
+    %% Parallel actions
+    par Inventory Check
+        OrderSvc->>InventorySvc: reserveItems(SKUs)
+        activate InventorySvc
+        InventorySvc->>DB: SELECT stock FOR UPDATE
+        DB-->>InventorySvc: stock levels
+        InventorySvc->>Cache: SETNX lock:SKU-1234
+        Cache-->>InventorySvc: OK (lock acquired)
+        InventorySvc-->>OrderSvc: reserved: true
+        deactivate InventorySvc
+    and Payment Processing
+        OrderSvc->>PaymentSvc: chargeCard(amount, token)
+        activate PaymentSvc
+        PaymentSvc->>ExtAPI: POST /v1/charges
+        Note over ExtAPI: Stripe API call
+        ExtAPI-->>PaymentSvc: charge_id: ch_xxx
+        PaymentSvc->>DB: INSERT INTO payments
+        PaymentSvc-->>OrderSvc: payment confirmed
+        deactivate PaymentSvc
+    and Fraud Check
+        OrderSvc->>Auth: fraudScore(userId, amount)
+        Auth-->>OrderSvc: score: 0.12 (low risk)
+    end
+
+    %% Critical region
+    critical Commit Order Transaction
+        OrderSvc->>DB: BEGIN TRANSACTION
+        OrderSvc->>DB: INSERT INTO orders
+        OrderSvc->>DB: UPDATE inventory SET reserved=true
+        OrderSvc->>DB: COMMIT
+    option Transaction Fails
+        OrderSvc->>DB: ROLLBACK
+        OrderSvc->>InventorySvc: releaseReservation()
+        OrderSvc->>PaymentSvc: refund(charge_id)
+        OrderSvc-->>BFF: 500 Order failed
+    end
+
+    %% Loop
+    loop Retry webhook delivery (max 3)
+        OrderSvc->>Webhook: POST /webhook/order.created
+        alt Success
+            Webhook-->>OrderSvc: 200 OK
+        else Timeout/Error
+            OrderSvc->>Queue: enqueueRetry(webhook_payload)
+        end
+    end
+
+    OrderSvc-->>BFF: order_id: ORD-5567
+    deactivate OrderSvc
+
+    %% Break
+    break Order total exceeds $10,000
+        BFF->>Auth: manualReviewRequired(ORD-5567)
+        Auth-->>BFF: review_ticket: REV-001
+        BFF-->>Gateway: 202 Pending Review
+        Gateway-->>Browser: "Order under review"
+        Browser-->>User: Review notification
+    end
+
+    BFF->>Queue: publish(order.confirmed, ORD-5567)
+    deactivate BFF
+
+    %% Async worker processing
+    Queue-)Worker: consume: order.confirmed
+    activate Worker
+    Worker->>DB: SELECT order details
+    DB-->>Worker: order record
+
+    par Send Notifications
+        Worker-)User: Email: order confirmation
+    and Update Analytics
+        Worker->>ExtAPI: POST /events (analytics)
+    and Sync to Data Warehouse
+        Worker->>DB: INSERT INTO analytics.orders
+    end
+
+    deactivate Worker
+    deactivate Gateway
+
+    %% Rect (background highlight)
+    rect rgb(40, 60, 80)
+        Note over User,Browser: Post-purchase flow
+        User->>Browser: Check order status
+        Browser->>Gateway: GET /api/orders/ORD-5567
+        Gateway->>Cache: GET order:ORD-5567
+        Cache-->>Gateway: cached order JSON
+        Gateway-->>Browser: 200 order details
+        Browser-->>User: Order status page
+    end
+
+    %% Cross (destroy)
+    User->>Browser: Close tab
+    destroy Browser
+    Browser->>CDN: Connection closed

@@ -1,0 +1,40 @@
+sequenceDiagram
+    actor Customer
+    participant Web as Web App
+    participant Cart as Cart Service
+    participant Inventory as Inventory Service
+    participant Payment as Payment Gateway
+    participant Order as Order Service
+    participant Warehouse as Warehouse
+    participant Notify as Notification Service
+
+    Customer->>Web: Add to cart (SKU-1234, qty: 2)
+    Web->>Cart: addItem(userId, SKU-1234, 2)
+    Cart->>Inventory: checkAvailability(SKU-1234, 2)
+    Inventory-->>Cart: available: true, remaining: 47
+    Cart-->>Web: Cart updated (2 items, $59.98)
+    Web-->>Customer: Cart badge updated
+
+    Customer->>Web: Checkout
+    Web->>Cart: getCart(userId)
+    Cart-->>Web: {items, total: $59.98}
+    Web->>Inventory: reserveStock(SKU-1234, 2)
+    Inventory-->>Web: reservation_id: RSV-001 (TTL: 10min)
+
+    Web->>Payment: charge(card_token, $59.98)
+    alt Payment Success
+        Payment-->>Web: txn_id: TXN-8832
+        Web->>Order: createOrder(userId, items, TXN-8832)
+        Order->>Inventory: confirmReservation(RSV-001)
+        Inventory-->>Order: stock committed
+        Order->>Warehouse: fulfillOrder(ORD-5567)
+        Warehouse-->>Order: shipment_id: SHP-3344
+        Order->>Notify: sendConfirmation(userId, ORD-5567)
+        Notify-->>Customer: Order confirmation email
+        Web-->>Customer: Order #5567 confirmed
+    else Payment Declined
+        Payment-->>Web: declined: insufficient_funds
+        Web->>Inventory: releaseReservation(RSV-001)
+        Inventory-->>Web: stock released
+        Web-->>Customer: Payment failed — try another card
+    end

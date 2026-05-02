@@ -1,0 +1,35 @@
+sequenceDiagram
+    actor User
+    participant API as API Gateway
+    participant Auth as Auth Service
+    participant DB as User DB
+    participant Cache as Redis Cache
+    participant Email as Email Service
+
+    User->>API: POST /login {email, password}
+    API->>Auth: validateCredentials(email, password)
+    Auth->>Cache: GET session:{email}
+    alt Cache Hit
+        Cache-->>Auth: cached session
+        Auth-->>API: 200 OK + JWT
+    else Cache Miss
+        Auth->>DB: SELECT * FROM users WHERE email=?
+        DB-->>Auth: user record
+        alt Valid Password
+            Auth->>Auth: bcrypt.compare(password, hash)
+            Auth->>Cache: SET session:{email} TTL=3600
+            Auth-->>API: 200 OK + JWT
+            API-->>User: 200 {token, refreshToken}
+        else Invalid Password
+            Auth-->>API: 401 Unauthorized
+            API->>Auth: incrementFailedAttempts(email)
+            Auth->>DB: UPDATE users SET failed_attempts++
+            alt Account Locked (5+ failures)
+                Auth->>Email: sendLockoutNotification(email)
+                Email-->>User: "Account locked" email
+                API-->>User: 423 Locked
+            else Under Threshold
+                API-->>User: 401 Invalid credentials
+            end
+        end
+    end

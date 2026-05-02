@@ -1,0 +1,44 @@
+sequenceDiagram
+    actor User
+    participant App as Mobile App
+    participant GW as API Gateway
+    participant UserSvc as User Service
+    participant FriendSvc as Friend Service
+    participant Feed as Feed Service
+    participant Media as Media Service
+    participant S3 as Object Storage
+    participant Push as Push Notifications
+    participant Cache as Redis
+
+    User->>App: Compose post with photo
+    App->>Media: uploadImage(file, userId)
+    Media->>S3: putObject(images/{uuid}.webp)
+    S3-->>Media: URL: cdn.app.com/images/{uuid}.webp
+    Media->>Media: generateThumbnail(128x128)
+    Media->>S3: putObject(thumbs/{uuid}.webp)
+    Media-->>App: {imageUrl, thumbUrl}
+
+    App->>GW: POST /feed/posts {text, imageUrl}
+    GW->>Feed: createPost(userId, content)
+    Feed->>Cache: LPUSH feed:{userId} postId
+    Feed-->>GW: post_id: POST-7712
+
+    GW->>FriendSvc: getFollowers(userId)
+    FriendSvc->>Cache: SMEMBERS followers:{userId}
+    Cache-->>FriendSvc: [user_23, user_45, user_67, ...]
+
+    par Fan-out to followers
+        FriendSvc->>Feed: injectToFeed(user_23, POST-7712)
+        Feed->>Cache: LPUSH feed:user_23 POST-7712
+    and
+        FriendSvc->>Feed: injectToFeed(user_45, POST-7712)
+        Feed->>Cache: LPUSH feed:user_45 POST-7712
+    and
+        FriendSvc->>Feed: injectToFeed(user_67, POST-7712)
+        Feed->>Cache: LPUSH feed:user_67 POST-7712
+    end
+
+    FriendSvc->>Push: notifyFollowers([user_23, user_45, user_67])
+    Push-->>User: Push: "User posted a new photo"
+    GW-->>App: 201 Post created
+    App-->>User: Post published ✓
