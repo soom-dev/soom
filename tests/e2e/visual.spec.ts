@@ -8,12 +8,25 @@ import { existsSync } from 'node:fs';
 // subsequent runtime refactor PR (R1+) shows visual diffs in CI when present.
 // Tolerance is the suite-wide `maxDiffPixelRatio: 0.01` from playwright.config.ts.
 //
+// Parameterized on `HANSOOM_RUNTIME` (default `v1`): the same pixel baselines
+// (captured under R0/v1) gate both runtimes. Under R4 the CI runs this spec
+// twice, once per runtime; locally `HANSOOM_RUNTIME=v2 bun run test:e2e`
+// forces the v2 path. The output HTML path is suffixed with the runtime so
+// successive invocations never clobber each other's artifacts.
+//
 // Diagrams chosen to span complexity:
 //   simple  — flow-simple.mmd      (3 nodes, 2 edges; basic node/edge animation)
 //   medium  — flow-ecommerce.mmd   (subgraphs, parallel flows, edge labels)
 //   stress  — kitchen-sink.mmd     (all 13 shapes, nested subgraphs, dense edges)
 //
 // Sequence diagrams are deliberately excluded — sequence support isn't on main yet.
+
+const RUNTIME = (process.env.HANSOOM_RUNTIME ?? 'v1') as 'v1' | 'v2';
+if (RUNTIME !== 'v1' && RUNTIME !== 'v2') {
+  throw new Error(
+    `HANSOOM_RUNTIME must be 'v1' or 'v2' (got ${JSON.stringify(process.env.HANSOOM_RUNTIME)})`
+  );
+}
 
 const DIAGRAMS = [
   { id: 'simple', mmd: 'examples/basic/flow-simple.mmd' },
@@ -22,11 +35,14 @@ const DIAGRAMS = [
 ];
 
 for (const { id, mmd } of DIAGRAMS) {
-  const html = `/tmp/e2e-visual-${id}.html`;
+  const html = `/tmp/e2e-visual-${id}-${RUNTIME}.html`;
 
-  test.describe(`visual: ${id}`, () => {
+  test.describe(`visual: ${id} [${RUNTIME}]`, () => {
     test.beforeAll(() => {
-      execSync(`bun run src/cli.ts render ${mmd} -o ${html}`, { stdio: 'pipe' });
+      execSync(`bun run src/cli.ts render ${mmd} -o ${html}`, {
+        stdio: 'pipe',
+        env: { ...process.env, HANSOOM_RUNTIME: RUNTIME },
+      });
       if (!existsSync(html)) throw new Error(`render failed: ${html} not found`);
     });
 

@@ -4,10 +4,14 @@ import { $ } from 'bun';
 
 describe('Animation integration', () => {
   beforeAll(async () => {
-    await $`bun run src/cli.ts render examples/basic/flow-simple.mmd -o /tmp/test-anim-simple.html`.quiet();
-    await $`bun run src/cli.ts render examples/basic/flow-branching.mmd -o /tmp/test-anim-branch.html`.quiet();
-    await $`bun run src/cli.ts render examples/basic/flow-microservice.mmd -o /tmp/test-anim-micro.html`.quiet();
-    await $`bun run src/cli.ts render examples/basic/flow-cicd.mmd -o /tmp/test-anim-cicd.html`.quiet();
+    // Pinned to the v1 runtime: every assertion in this file (createDrawable,
+    // createTimeline, soom-sequence script tag) targets the v1 codegen's
+    // specific output shape. v2 emits an IIFE bundle + scene JSON with
+    // mangled internal symbols. R6 deletes v1 and this file along with it.
+    await $`HANSOOM_RUNTIME=v1 bun run src/cli.ts render examples/basic/flow-simple.mmd -o /tmp/test-anim-simple.html`.quiet();
+    await $`HANSOOM_RUNTIME=v1 bun run src/cli.ts render examples/basic/flow-branching.mmd -o /tmp/test-anim-branch.html`.quiet();
+    await $`HANSOOM_RUNTIME=v1 bun run src/cli.ts render examples/basic/flow-microservice.mmd -o /tmp/test-anim-micro.html`.quiet();
+    await $`HANSOOM_RUNTIME=v1 bun run src/cli.ts render examples/basic/flow-cicd.mmd -o /tmp/test-anim-cicd.html`.quiet();
   }, 120_000);
 
   it('should contain sequence JSON data', async () => {
