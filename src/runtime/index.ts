@@ -10,9 +10,14 @@ import { exposeApi, type SoomAnimationApi } from './api.js';
  * Entry point for the Hansoom runtime bundle. Browser-side code parses the
  * inlined Scene JSON and boots the animation. Wired in R3; consumed by
  * pipeline.ts in R4.
+ *
+ * Accepts either an `AnimationScene` object or its JSON string form so
+ * the inlined boot script can use `JSON.parse(...)` (the natural shape
+ * for embedded `<script type="application/json">` payloads).
  */
-export function bootRuntime(sceneJson: string): SoomAnimationApi {
-  const scene = JSON.parse(sceneJson) as AnimationScene;
+export function bootRuntime(sceneOrJson: AnimationScene | string): SoomAnimationApi {
+  const scene =
+    typeof sceneOrJson === 'string' ? (JSON.parse(sceneOrJson) as AnimationScene) : sceneOrJson;
   const svgRoot = document.querySelector<SVGSVGElement>('.diagram-container svg');
   if (!svgRoot) throw new Error('soom: SVG diagram container not found');
 
@@ -43,3 +48,10 @@ export function bootRuntime(sceneJson: string): SoomAnimationApi {
 }
 
 export type { SoomAnimationApi };
+
+// Expose `bootRuntime` on the global so the IIFE-bundled runtime can be
+// invoked from a separate inline boot `<script>` after the bundle executes.
+// Property name is preserved by the minifier (it's an external-object access);
+// the local binding is mangled but the reference is captured here at module
+// load time. The HTML emit path in `output/html.ts` reads `window.bootRuntime`.
+(globalThis as unknown as { bootRuntime: typeof bootRuntime }).bootRuntime = bootRuntime;
