@@ -4,6 +4,12 @@ export const TIMING = {
   glowPulseDuration: 1500,
   loopDelay: 3000,
   annotationFade: 200,
+  // Scene IR (R1+) — emitted into AnimationScene.timing. Values mirror the
+  // hard-coded literals in src/animation/runtime/timeline-builder.ts so the
+  // Scene matches today's behaviour when consumed in R3.
+  idleGap: 500,
+  interStepGap: 399,
+  endHold: 1000,
 } as const;
 
 export const Z_INDEX = {
