@@ -15,7 +15,8 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "bun build src/cli.ts --outdir dist --target node --packages external",
+    "build": "bun build src/cli.ts --outdir dist --target node --packages external && bun run scripts/build-runtime.ts",
+    "build:runtime": "bun run scripts/build-runtime.ts",
     "dev": "bun run src/cli.ts",
     "lint": "eslint src/",
     "format": "prettier --write src/",
@@ -54,6 +55,7 @@
     "@types/node": "^25.6.0",
     "@typescript-eslint/eslint-plugin": "^8.58.1",
     "@typescript-eslint/parser": "^8.58.1",
+    "bun-types": "^1.3.13",
     "eslint": "^10.2.0",
     "jsdom": "^29.0.2",
     "opentype.js": "^1.3.4",
