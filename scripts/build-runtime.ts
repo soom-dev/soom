@@ -14,12 +14,19 @@ if (existsSync(OUT_DIR)) {
 // `globalThis.anime`. The runtime imports from `./_anime.js` (a thin shim
 // over `globalThis.anime`) instead of bare `'animejs'`, so the bundle has
 // no unresolved imports and runs in a browser as-is.
+//
+// `format: 'iife'` wraps the whole bundle in a self-executing function so
+// the produced JS is legal inside a classic inline `<script>` (no `export`
+// keyword leaks). `src/runtime/index.ts` writes `bootRuntime` to
+// `globalThis` at load time so the boot `<script>` emitted in
+// `output/html.ts` can call it after the bundle executes.
 const result = await Bun.build({
   entrypoints: [ENTRY],
   outdir: OUT_DIR,
   target: 'browser',
   minify: true,
   external: ['animejs'],
+  format: 'iife',
   naming: 'runtime.[ext]',
 });
 

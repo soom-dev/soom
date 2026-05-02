@@ -1,8 +1,31 @@
 import type { Timeline } from './_anime.js';
-import type { AnimationScene, EdgeId } from '../animation/scene/types.js';
+import type { AnimationScene, EdgeId, NodeId } from '../animation/scene/types.js';
 import type { AnnotationBindings } from './annotations.js';
 import type { PersistentBindings } from './persistent.js';
 import type { ResolvedElements } from './elements.js';
+
+const SHADOW_COMPLETED = 'drop-shadow(-4px 7px 12px var(--soom-shadow-completed))';
+
+function applyCompletedThroughStep(scene: AnimationScene, els: ResolvedElements, n: number): void {
+  const markNode = (nid: NodeId): void => {
+    const el = els.nodes.get(nid);
+    if (!el) return;
+    el.classList.remove('soom-node-active');
+    el.classList.add('soom-node-completed');
+    el.style.filter = SHADOW_COMPLETED;
+  };
+  for (let i = 0; i < n && i < scene.steps.length; i++) {
+    const step = scene.steps[i];
+    for (const nid of step.activate.nodes) markNode(nid);
+    for (const eid of step.activate.edges) {
+      const edge = scene.elements.edges[eid];
+      if (!edge) continue;
+      const path = els.edges.get(eid);
+      if (path) path.classList.add('soom-edge-completed');
+      if (edge.target) markNode(edge.target);
+    }
+  }
+}
 
 /**
  * Public surface exposed on `window.soomAnimation`. Shape mirrors the existing
@@ -54,12 +77,27 @@ export function exposeApi(ctx: ApiContext): SoomAnimationApi {
     persistent.resetMarching();
     persistent.stopFocus();
     if (n <= 0) {
-      timeline.seek(0, true);
+      timeline.seek(0, false);
+      // Clear any class state left over from a previous forward run.
+      for (const el of ctx.els.nodes.values()) {
+        el.classList.remove('soom-node-active', 'soom-node-completed');
+        el.style.removeProperty('filter');
+      }
+      for (const path of ctx.els.edges.values()) {
+        path.classList.remove('soom-edge-completed');
+      }
       annotations.clear();
       return;
     }
     if (n > totalSteps) n = totalSteps;
-    timeline.seek(stepEndOffsets[n - 1], true);
+    timeline.seek(stepEndOffsets[n - 1], false);
+    // anime.js v4 `seek` only fires `timeline.call(...)` callbacks near the
+    // target time, not across the full 0..t range — so the per-step
+    // class-swap callbacks from earlier steps never run during a jump-seek.
+    // Mirror the v1 runtime by walking steps[0..n-1] and applying the
+    // completed appearance directly. R7 can revisit if anime.js gains a
+    // "replay all callbacks" flag.
+    applyCompletedThroughStep(scene, ctx.els, n);
     if (n - 1 < scene.steps.length) annotations.setStep(scene.steps[n - 1]);
   };
 
@@ -95,7 +133,14 @@ export function exposeApi(ctx: ApiContext): SoomAnimationApi {
       persistent.resetMarching();
       persistent.stopFocus();
       timeline.cancel();
-      timeline.seek(0, true);
+      timeline.seek(0, false);
+      for (const el of ctx.els.nodes.values()) {
+        el.classList.remove('soom-node-active', 'soom-node-completed');
+        el.style.removeProperty('filter');
+      }
+      for (const path of ctx.els.edges.values()) {
+        path.classList.remove('soom-edge-completed');
+      }
       annotations.clear();
     },
     setSpeed: (multiplier: number): void => {

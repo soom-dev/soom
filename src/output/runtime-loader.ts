@@ -5,18 +5,30 @@ import { fileURLToPath } from 'node:url';
 /**
  * Read the bundled runtime produced by `scripts/build-runtime.ts`.
  *
- * R2 ships this loader but does not call it from anywhere. R3 inlines the
- * returned string into HTML alongside `loadAnimeJs()` from anime-loader.ts.
+ * Two execution modes resolve `import.meta.url` to different depths:
+ *   - dev (`bun run src/cli.ts`): module is `src/output/runtime-loader.ts`,
+ *     so the project root is two levels up.
+ *   - bundled (`node dist/cli.js`): module is collapsed into `dist/cli.js`,
+ *     so the project root is one level up.
  *
- * NOTE: relative path is correct in dev (`bun run src/cli.ts`) where this
- * module resolves to `src/output/runtime-loader.ts`. After bundling to
- * `dist/cli.js`, `import.meta.url` points at the bundled file; the path math
- * resolves to a sibling of `dist/`, which is `dist-runtime/runtime.js` — also
- * correct as long as both `dist/` and `dist-runtime/` live under the same
- * project root. R3 should re-verify when wiring it up.
+ * Both candidate paths are tried in order; the first that exists wins.
+ * R6 will revisit when the legacy codegen is removed and the runtime moves
+ * from `dist-runtime/` into the main bundle.
  */
 export async function loadRuntimeBundle(): Promise<string> {
   const here = dirname(fileURLToPath(import.meta.url));
-  const bundlePath = join(here, '..', '..', 'dist-runtime', 'runtime.js');
-  return readFile(bundlePath, 'utf-8');
+  const candidates = [
+    join(here, '..', '..', 'dist-runtime', 'runtime.js'),
+    join(here, '..', 'dist-runtime', 'runtime.js'),
+  ];
+  for (const candidate of candidates) {
+    try {
+      return await readFile(candidate, 'utf-8');
+    } catch {
+      // try next candidate
+    }
+  }
+  throw new Error(
+    `soom: runtime bundle not found. Run \`bun run build\` first. Tried: ${candidates.join(', ')}`
+  );
 }

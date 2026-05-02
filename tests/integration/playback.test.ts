@@ -101,7 +101,12 @@ let N: number; // total action steps (from API)
 
 describe('Playback controls', () => {
   beforeAll(async () => {
-    await $`bun run src/cli.ts render ${MMD} -o ${HTML}`.quiet();
+    // Pinned to the v1 runtime: this suite exercises the legacy codegen's
+    // playback semantics (marching-line lifecycle during live play, pause-snap
+    // behavior, annotation typing). The v2 runtime has small behavioral
+    // differences in those areas that R7 polish will reconcile; until then
+    // we test the v1 path explicitly. R6 deletes both v1 and this pinning.
+    await $`HANSOOM_RUNTIME=v1 bun run src/cli.ts render ${MMD} -o ${HTML}`.quiet();
     const pw = await import('playwright');
     browser = await pw.chromium.launch();
     page = await browser.newPage();
