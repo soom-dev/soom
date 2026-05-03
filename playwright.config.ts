@@ -4,13 +4,15 @@ import { defineConfig } from '@playwright/test';
 // package.json (1.59.1). Each Playwright release bundles one Chromium build, so
 // matching the package version pins the browser revision used for screenshots.
 //
-// `maxDiffPixelRatio: 0.02` (raised from 0.01 in R4) covers small fade-timing
-// drift between the v1 codegen runtime and the v2 anime.js-native runtime —
-// e.g. when `seek` lands the playhead between the per-step active fade-in and
-// the post-step completed fade-out, the two runtimes settle on subtly
-// different opacity values for the just-activated nodes. The R-plan risk
-// register pre-authorized this mitigation; R7 is the place to retune the
-// runtime to land back at ≤ 1%.
+// `maxDiffPixelRatio: 0.02` — R7-debt audited the original R4-era v1↔v2
+// justification. v1 is gone post-R6 so that reason no longer applies. The
+// `stress-final` baseline (kitchen-sink, 26 steps × 13 shape types) still
+// drifts ~0.0199 against the R0/v1-captured baseline because the seek
+// playhead lands fractionally short of the fully-completed fade-out target,
+// compounded across the dense composition. R7-polish is the place to fix
+// the drift at the source (snap seek to `completeOffset + fadeDuration`)
+// or re-baseline both darwin + linux snapshot platforms to v2's actual
+// output — either path lets this drop back to 0.01.
 export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 60_000,

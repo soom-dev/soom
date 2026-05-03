@@ -62,12 +62,17 @@ describe('exposeApi', () => {
 
   it('setSpeed clamps to 1 for invalid values', async () => {
     const { api } = await makeApi();
+    // anime.js v4 exposes per-instance playback rate as `speed` on Timer/
+    // Timeline (see src/runtime/api.ts setSpeed). The test was previously
+    // reading `playbackRate` (an init-param key, not a runtime property)
+    // and silently passing because both sides were undefined; R7-debt
+    // routes setSpeed through the correct property.
     api.setSpeed(0);
-    expect(api.timeline.playbackRate).toBe(1);
+    expect(api.timeline.speed).toBe(1);
     api.setSpeed(-2);
-    expect(api.timeline.playbackRate).toBe(1);
+    expect(api.timeline.speed).toBe(1);
     api.setSpeed(2);
-    expect(api.timeline.playbackRate).toBe(2);
+    expect(api.timeline.speed).toBe(2);
   });
 
   it('reset returns currentStep to 0', async () => {

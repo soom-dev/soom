@@ -76,29 +76,32 @@ export function exposeApi(ctx: ApiContext): SoomAnimationApi {
   const seekToStep = (n: number): void => {
     persistent.resetMarching();
     persistent.stopFocus();
-    if (n <= 0) {
-      timeline.seek(0, false);
-      // Clear any class state left over from a previous forward run.
-      for (const el of ctx.els.nodes.values()) {
-        el.classList.remove('soom-node-active', 'soom-node-completed');
-        el.style.removeProperty('filter');
-      }
-      for (const path of ctx.els.edges.values()) {
-        path.classList.remove('soom-edge-completed');
-      }
-      annotations.clear();
-      return;
-    }
     if (n > totalSteps) n = totalSteps;
-    timeline.seek(stepEndOffsets[n - 1], false);
+    if (n < 0) n = 0;
+    timeline.seek(n === 0 ? 0 : stepEndOffsets[n - 1], false);
     // anime.js v4 `seek` only fires `timeline.call(...)` callbacks near the
-    // target time, not across the full 0..t range — so the per-step
-    // class-swap callbacks from earlier steps never run during a jump-seek.
-    // Mirror the v1 runtime by walking steps[0..n-1] and applying the
-    // completed appearance directly. R7 can revisit if anime.js gains a
-    // "replay all callbacks" flag.
+    // target time, not across the full 0..t range — so the per-step class
+    // toggles never replay during a jump-seek. Worse, callbacks crossed by
+    // the seek path can leave stale state (e.g. a "step start" callback adds
+    // `soom-node-active` but the matching "step end" never fires to remove
+    // it, producing active+completed conflicts on backward jumps). Clear
+    // every node/edge first, then re-apply completed for steps 0..n-1 from
+    // scratch — gives a deterministic post-seek state regardless of jump
+    // direction. R7 can revisit if anime.js gains a "replay all callbacks"
+    // flag.
+    for (const el of ctx.els.nodes.values()) {
+      el.classList.remove('soom-node-active', 'soom-node-completed');
+      el.style.removeProperty('filter');
+    }
+    for (const path of ctx.els.edges.values()) {
+      path.classList.remove('soom-edge-completed');
+    }
     applyCompletedThroughStep(scene, ctx.els, n);
-    if (n - 1 < scene.steps.length) annotations.setStep(scene.steps[n - 1]);
+    if (n === 0) {
+      annotations.clear();
+    } else if (n - 1 < scene.steps.length) {
+      annotations.setStep(scene.steps[n - 1]);
+    }
   };
 
   const api: SoomAnimationApi = {
@@ -144,7 +147,12 @@ export function exposeApi(ctx: ApiContext): SoomAnimationApi {
       annotations.clear();
     },
     setSpeed: (multiplier: number): void => {
-      timeline.playbackRate = multiplier > 0 ? multiplier : 1;
+      // anime.js v4 exposes per-instance playback rate as `speed` on the
+      // Clock base class (`createTimeline` extends Timer extends Clock).
+      // The init-param key `playbackRate` only configures the initial rate;
+      // it does NOT exist as a runtime property — assigning to it silently
+      // drops the value, which is why setSpeed appeared to work but didn't.
+      timeline.speed = multiplier > 0 ? multiplier : 1;
     },
     get currentStep(): number {
       return getCurrentStepIndex() + 1;

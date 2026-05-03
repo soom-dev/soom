@@ -187,7 +187,15 @@ function activateNode(
     },
     offset
   );
-  timeline.call(() => el.classList.add('soom-node-active'), offset);
+  timeline.call(() => {
+    // Strip the prior step's completed class before re-activating: a node
+    // that completed earlier and re-appears in this step would otherwise
+    // carry both classes simultaneously (caught by playback.test.ts'
+    // conflictCount assertion). The complete callback below restores
+    // `soom-node-completed` at this step's end.
+    el.classList.remove('soom-node-completed');
+    el.classList.add('soom-node-active');
+  }, offset);
 }
 
 function revealEdge(

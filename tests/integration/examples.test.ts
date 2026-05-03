@@ -2,26 +2,26 @@ import { describe, it, expect, beforeAll } from 'bun:test';
 import { readFile } from 'node:fs/promises';
 import { $ } from 'bun';
 
-// TODO(R7): v1 runtime was deleted in R6. Reconcile assertions to the v2
-// markers (`<script id="soom-scene">`, IIFE bundle, `bootRuntime(...)` boot
-// call) and re-enable. The current assertions target v1's `<script id=
-// "soom-sequence">` and codegen-specific symbols and will never match v2.
-describe.skip('Animation integration (v1-pinned, awaiting R7 reconciliation)', () => {
+describe('Animation integration', () => {
   beforeAll(async () => {
-    await $`HANSOOM_RUNTIME=v1 bun run src/cli.ts render examples/basic/flow-simple.mmd -o /tmp/test-anim-simple.html`.quiet();
-    await $`HANSOOM_RUNTIME=v1 bun run src/cli.ts render examples/basic/flow-branching.mmd -o /tmp/test-anim-branch.html`.quiet();
-    await $`HANSOOM_RUNTIME=v1 bun run src/cli.ts render examples/basic/flow-microservice.mmd -o /tmp/test-anim-micro.html`.quiet();
-    await $`HANSOOM_RUNTIME=v1 bun run src/cli.ts render examples/basic/flow-cicd.mmd -o /tmp/test-anim-cicd.html`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-simple.mmd -o /tmp/test-anim-simple.html`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-branching.mmd -o /tmp/test-anim-branch.html`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-microservice.mmd -o /tmp/test-anim-micro.html`.quiet();
+    await $`bun run src/cli.ts render examples/basic/flow-cicd.mmd -o /tmp/test-anim-cicd.html`.quiet();
   }, 120_000);
 
-  it('should contain sequence JSON data', async () => {
+  it('should embed the scene JSON payload', async () => {
     const html = await readFile('/tmp/test-anim-simple.html', 'utf-8');
-    expect(html).toContain('<script id="soom-sequence" type="application/json">');
-    const match = html.match(/<script id="soom-sequence" type="application\/json">([\s\S]*?)<\/script>/);
+    expect(html).toContain('<script id="soom-scene" type="application/json">');
+    const match = html.match(
+      /<script id="soom-scene" type="application\/json">([\s\S]*?)<\/script>/
+    );
     expect(match).toBeTruthy();
-    const seq = JSON.parse(match![1]);
-    expect(seq.steps).toBeDefined();
-    expect(seq.steps.length).toBeGreaterThan(0);
+    const scene = JSON.parse(match![1]);
+    expect(scene.version).toBe(1);
+    expect(scene.steps).toBeDefined();
+    expect(scene.steps.length).toBeGreaterThan(0);
+    expect(scene.elements).toBeDefined();
   });
 
   it('should contain annotation panel', async () => {
@@ -29,42 +29,47 @@ describe.skip('Animation integration (v1-pinned, awaiting R7 reconciliation)', (
     expect(html).toContain('<div id="soom-annotations">');
   });
 
-  it('should contain animation CSS classes', async () => {
+  it('should reference the v2 runtime CSS class names', async () => {
     const html = await readFile('/tmp/test-anim-simple.html', 'utf-8');
     expect(html).toContain('soom-node-active');
     expect(html).toContain('soom-node-completed');
-    expect(html).toContain('soom-flow-particle');
+    expect(html).toContain('soom-edge-completed');
   });
 
-  it('should use createDrawable in rendered output', async () => {
+  it('should boot the runtime with bootRuntime(scene)', async () => {
     const html = await readFile('/tmp/test-anim-simple.html', 'utf-8');
-    expect(html).toContain('createDrawable');
+    expect(html).toContain('bootRuntime');
+    expect(html).toContain("getElementById('soom-scene')");
   });
 
-  it('should not contain @keyframes soom-march in rendered output', async () => {
+  it('should not contain v1 codegen markers', async () => {
     const html = await readFile('/tmp/test-anim-simple.html', 'utf-8');
-    expect(html).not.toContain('@keyframes soom-march');
+    expect(html).not.toContain('<script id="soom-sequence"');
+    expect(html).not.toContain('<!-- runtime:');
   });
 
-  it('should render all four examples without errors', async () => {
+  it('should render all four examples with v2 markers', async () => {
     for (const name of ['simple', 'branch', 'micro', 'cicd']) {
       const html = await readFile(`/tmp/test-anim-${name}.html`, 'utf-8');
       expect(html).toContain('soomAnimation');
-      expect(html).toContain('soom-sequence');
-      expect(html).toContain('createTimeline');
-      expect(html).toContain('createDrawable');
+      expect(html).toContain('soom-scene');
+      expect(html).toContain('bootRuntime');
     }
   });
 
-  it('should produce valid sequence JSON for all examples', async () => {
+  it('should produce a valid AnimationScene for each example', async () => {
     for (const name of ['simple', 'branch', 'micro', 'cicd']) {
       const html = await readFile(`/tmp/test-anim-${name}.html`, 'utf-8');
-      const match = html.match(/<script id="soom-sequence" type="application\/json">([\s\S]*?)<\/script>/);
+      const match = html.match(
+        /<script id="soom-scene" type="application\/json">([\s\S]*?)<\/script>/
+      );
       expect(match).toBeTruthy();
-      const seq = JSON.parse(match![1]);
-      expect(seq.steps.length).toBeGreaterThan(0);
-      seq.steps.forEach((step: { activateNodes: string[] }) => {
-        expect(step.activateNodes.length).toBeGreaterThan(0);
+      const scene = JSON.parse(match![1]);
+      expect(scene.version).toBe(1);
+      expect(scene.steps.length).toBeGreaterThan(0);
+      scene.steps.forEach((step: { activate: { nodes: string[]; edges: string[] } }) => {
+        expect(step.activate).toBeDefined();
+        expect(step.activate.nodes.length + step.activate.edges.length).toBeGreaterThan(0);
       });
     }
   });
