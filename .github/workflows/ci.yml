@@ -65,13 +65,9 @@ jobs:
           echo "✓ CLAUDE.md not in repo"
 
   test:
-    name: Test (${{ matrix.runtime }})
+    name: Test
     runs-on: ubuntu-latest
     needs: [lint]
-    strategy:
-      fail-fast: false
-      matrix:
-        runtime: [v1, v2]
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -93,38 +89,15 @@ jobs:
       - name: Install Playwright OS deps (cache hit)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
-      # Build the runtime bundle in both cells: post-R5 the default runtime
-      # is v2, and unit tests that shell out to `bun run src/cli.ts render`
-      # (svg-labels-theme, integration/render, themes/theme) hit the v2 path
-      # and read dist-runtime/runtime.js via output/runtime-loader.ts. The v1
-      # cell needs it too because its unit-tests step doesn't set
-      # HANSOOM_RUNTIME — that's the documented "no env-flag leak into unit
-      # tests" rule. R6 collapses this once v1 is gone.
+      # Unit and e2e tests both shell out to `bun run src/cli.ts render`,
+      # which loads the runtime bundle via output/runtime-loader.ts. Build
+      # before tests so the bundle is on disk.
       - name: Build runtime bundle
         run: bun run build:runtime
-      # Unit tests run only once (matrix.runtime == 'v1') — they're env-agnostic
-      # and would just duplicate work in the v2 cell.
       - name: Unit tests
-        if: matrix.runtime == 'v1'
         run: bun run test
-      - name: E2E (${{ matrix.runtime }})
-        env:
-          HANSOOM_RUNTIME: ${{ matrix.runtime }}
+      - name: E2E
         run: bun run test:e2e
-
-  # Single canonical "Test" check that the main-branch ruleset requires.
-  # The matrix cells emit "Test (v1)" / "Test (v2)" which the ruleset
-  # doesn't know about; this aggregator gates on both cells passing.
-  test-summary:
-    name: Test
-    runs-on: ubuntu-latest
-    needs: [test]
-    if: always()
-    steps:
-      - name: Gate on matrix outcome
-        run: |
-          echo "matrix outcome: ${{ needs.test.result }}"
-          [ "${{ needs.test.result }}" = "success" ] || { echo "FAIL: at least one matrix cell did not pass"; exit 1; }
 
   build:
     name: Build

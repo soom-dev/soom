@@ -1,12 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve, basename, dirname, join } from 'node:path';
-import {
-  renderHtml,
-  type ThemeName,
-  type RuntimeVersion,
-  type AnimationData,
-} from './output/html.js';
-import { generateAnimationScript } from './animation/engine.js';
+import { renderHtml, type ThemeName } from './output/html.js';
 import { buildScene } from './animation/scene/build.js';
 import { measureEdgePaths } from './animation/scene/measurements.js';
 import { autoSequence } from './sequencer/auto.js';
@@ -22,23 +16,10 @@ interface RenderOptions {
   open?: boolean;
 }
 
-// Single source of truth for the runtime selection — read once at the
-// pipeline boundary so unit tests and library consumers stay env-agnostic.
-// Default is `v2` (anime.js-native runtime) since R5; `HANSOOM_RUNTIME=v1`
-// is the explicit escape hatch back to the legacy codegen runtime, kept
-// available through the R5 soak window until R6 deletes it.
-function selectRuntime(): RuntimeVersion {
-  const raw = process.env.HANSOOM_RUNTIME;
-  if (raw === undefined || raw === '') return 'v2';
-  if (raw === 'v1' || raw === 'v2') return raw;
-  throw new Error(`HANSOOM_RUNTIME must be 'v1' or 'v2' (got ${JSON.stringify(raw)})`);
-}
-
 export async function renderCommand(input: string, options: RenderOptions) {
   const inputPath = resolve(input);
   const source = await readFile(inputPath, 'utf-8');
 
-  const runtime = selectRuntime();
   const selectedTheme = options.theme ?? 'dark';
   const rawSvg = await renderMermaidToSvg(source, selectedTheme);
   const svg = postProcessSvg(rawSvg, source);
@@ -49,30 +30,18 @@ export async function renderCommand(input: string, options: RenderOptions) {
   const measurements = await measureEdgePaths(svg);
   const scene = buildScene(graph, sequence, measurements, svg);
 
-  let animation: AnimationData;
-  if (runtime === 'v2') {
-    const runtimeBundle = await loadRuntimeBundle();
-    animation = {
-      runtime: 'v2',
-      sceneJson: JSON.stringify(scene),
-      runtimeBundle,
-    };
-  } else {
-    animation = {
-      runtime: 'v1',
-      sequenceJson: JSON.stringify(sequence),
-      animationScript: generateAnimationScript(sequence, graph),
-    };
-  }
-
-  const html = await renderHtml(svg, selectedTheme, animation);
+  const runtimeBundle = await loadRuntimeBundle();
+  const html = await renderHtml(svg, selectedTheme, {
+    sceneJson: JSON.stringify(scene),
+    runtimeBundle,
+  });
 
   const outputPath = options.output
     ? resolve(options.output)
     : join(dirname(inputPath), basename(inputPath).replace(/\.(mmd|mermaid)$/i, '.html'));
 
   await writeFile(outputPath, html, 'utf-8');
-  console.log(`\u2713 Rendered ${basename(inputPath)} \u2192 ${basename(outputPath)}`);
+  console.log(`✓ Rendered ${basename(inputPath)} → ${basename(outputPath)}`);
 
   if (options.open) {
     openInBrowser(outputPath);
