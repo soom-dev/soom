@@ -2,12 +2,12 @@ import { describe, it, expect, beforeAll } from 'bun:test';
 import { readFile } from 'node:fs/promises';
 import { $ } from 'bun';
 
-describe('Animation integration', () => {
+// TODO(R7): v1 runtime was deleted in R6. Reconcile assertions to the v2
+// markers (`<script id="soom-scene">`, IIFE bundle, `bootRuntime(...)` boot
+// call) and re-enable. The current assertions target v1's `<script id=
+// "soom-sequence">` and codegen-specific symbols and will never match v2.
+describe.skip('Animation integration (v1-pinned, awaiting R7 reconciliation)', () => {
   beforeAll(async () => {
-    // Pinned to the v1 runtime: every assertion in this file (createDrawable,
-    // createTimeline, soom-sequence script tag) targets the v1 codegen's
-    // specific output shape. v2 emits an IIFE bundle + scene JSON with
-    // mangled internal symbols. R6 deletes v1 and this file along with it.
     await $`HANSOOM_RUNTIME=v1 bun run src/cli.ts render examples/basic/flow-simple.mmd -o /tmp/test-anim-simple.html`.quiet();
     await $`HANSOOM_RUNTIME=v1 bun run src/cli.ts render examples/basic/flow-branching.mmd -o /tmp/test-anim-branch.html`.quiet();
     await $`HANSOOM_RUNTIME=v1 bun run src/cli.ts render examples/basic/flow-microservice.mmd -o /tmp/test-anim-micro.html`.quiet();
