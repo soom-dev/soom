@@ -93,14 +93,20 @@ jobs:
       - name: Install Playwright OS deps (cache hit)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
-      # Unit tests run only once (matrix.runtime == 'v1') — they don't read
-      # HANSOOM_RUNTIME and would just duplicate work in the v2 cell.
+      # Build the runtime bundle in both cells: post-R5 the default runtime
+      # is v2, and unit tests that shell out to `bun run src/cli.ts render`
+      # (svg-labels-theme, integration/render, themes/theme) hit the v2 path
+      # and read dist-runtime/runtime.js via output/runtime-loader.ts. The v1
+      # cell needs it too because its unit-tests step doesn't set
+      # HANSOOM_RUNTIME — that's the documented "no env-flag leak into unit
+      # tests" rule. R6 collapses this once v1 is gone.
+      - name: Build runtime bundle
+        run: bun run build:runtime
+      # Unit tests run only once (matrix.runtime == 'v1') — they're env-agnostic
+      # and would just duplicate work in the v2 cell.
       - name: Unit tests
         if: matrix.runtime == 'v1'
         run: bun run test
-      - name: Build runtime bundle (v2 only)
-        if: matrix.runtime == 'v2'
-        run: bun run build:runtime
       - name: E2E (${{ matrix.runtime }})
         env:
           HANSOOM_RUNTIME: ${{ matrix.runtime }}
