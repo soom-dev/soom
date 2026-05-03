@@ -23,9 +23,7 @@
     "format:check": "prettier --check src/",
     "test": "bun test --path-ignore-patterns 'tests/e2e'",
     "test:e2e": "npx playwright test",
-    "preview": "bun run dev render examples/microservice.mmd -o /tmp/preview.html && open /tmp/preview.html",
-    "preview:v1": "HANSOOM_RUNTIME=v1 bun run dev render examples/basic/flow-microservice.mmd -o /tmp/v1.html && open /tmp/v1.html",
-    "preview:v2": "HANSOOM_RUNTIME=v2 bun run dev render examples/basic/flow-microservice.mmd -o /tmp/v2.html && open /tmp/v2.html"
+    "preview": "bun run dev render examples/microservice.mmd -o /tmp/preview.html && open /tmp/preview.html"
   },
   "license": "Apache-2.0",
   "repository": {
