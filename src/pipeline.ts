@@ -24,9 +24,12 @@ interface RenderOptions {
 
 // Single source of truth for the runtime selection — read once at the
 // pipeline boundary so unit tests and library consumers stay env-agnostic.
+// Default is `v2` (anime.js-native runtime) since R5; `HANSOOM_RUNTIME=v1`
+// is the explicit escape hatch back to the legacy codegen runtime, kept
+// available through the R5 soak window until R6 deletes it.
 function selectRuntime(): RuntimeVersion {
   const raw = process.env.HANSOOM_RUNTIME;
-  if (raw === undefined || raw === '') return 'v1';
+  if (raw === undefined || raw === '') return 'v2';
   if (raw === 'v1' || raw === 'v2') return raw;
   throw new Error(`HANSOOM_RUNTIME must be 'v1' or 'v2' (got ${JSON.stringify(raw)})`);
 }
