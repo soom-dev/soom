@@ -59,11 +59,15 @@ export function bindAnnotations(scene: AnimationScene): AnnotationBindings {
     for (const div of lineNodes) {
       try {
         const result = animeText.splitText(div, { words: true });
-        const wordEls = result.words?.elements;
-        if (wordEls) {
+        // anime.js v4 TextSplitter exposes the wrapped word elements directly
+        // on `.words` (typed `any[]` in the package's type defs because the
+        // template can return strings or HTMLElements). For `{ words: true }`
+        // the entries are HTMLElements.
+        const wordEls = result.words as HTMLElement[] | undefined;
+        if (wordEls && wordEls.length > 0) {
           for (const w of wordEls) {
-            (w as HTMLElement).style.display = 'inline-block';
-            (w as HTMLElement).style.opacity = '0';
+            w.style.display = 'inline-block';
+            w.style.opacity = '0';
             splits.push(w);
           }
         }
