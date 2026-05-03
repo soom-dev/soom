@@ -1,9 +1,6 @@
 /**
  * AnimationScene IR — typed JSON contract between build-time and runtime.
  * See plan/refactor/animation-runtime-system-design.md §3.2.
- *
- * Built in R1, consumed by the new runtime in R3. Until then, the existing
- * codegen runtime in src/animation/runtime/ continues to ship.
  */
 
 export type NodeId = string;
