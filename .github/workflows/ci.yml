@@ -32,6 +32,7 @@ jobs:
       - run: bun install
       - run: bun run lint
       - run: bun run format:check
+      - run: bun run typecheck
       - name: Security pattern check
         run: |
           echo "Scanning src/ for dangerous patterns..."
