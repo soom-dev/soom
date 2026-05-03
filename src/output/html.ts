@@ -57,6 +57,10 @@ export async function renderHtml(
   const animationHtml = animation
     ? buildAnimationHtml(animation, controlsHtml, controlsScript)
     : '';
+  // Debug marker for the runtime that produced this HTML — surfaces in
+  // browser devtools and `grep` so post-soak fallbacks (R5 escape hatch) and
+  // bug reports can be classified by runtime without re-running the render.
+  const runtimeMarker = animation ? `<!-- runtime: ${animation.runtime} -->\n  ` : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -73,7 +77,7 @@ export async function renderHtml(
   </style>
 </head>
 <body class="${defaultClass}">
-  <button class="soom-theme-toggle" aria-label="Toggle theme" title="Toggle dark/light mode"></button>
+  ${runtimeMarker}<button class="soom-theme-toggle" aria-label="Toggle theme" title="Toggle dark/light mode"></button>
   <div class="diagram-container">
     ${cleanSvg}
   </div>

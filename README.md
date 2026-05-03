@@ -107,6 +107,10 @@ bun run build
 - [ ] **Phase 6** — Multi-format support (D2, PlantUML, code scanner)
 - [ ] **Phase 7** — Platform (hosted rendering API, VS Code extension, GitHub Action)
 
+## Troubleshooting
+
+If output behaves unexpectedly after a Hansoom upgrade, set `HANSOOM_RUNTIME=v1` to fall back to the legacy runtime through the PR-deletion window. The runtime that produced a given HTML is recorded as a `<!-- runtime: v1 -->` / `<!-- runtime: v2 -->` comment near the top of `<body>`.
+
 ## Contributing
 
 Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, branch and commit conventions, and the validation checklist your change should pass before merge.
