@@ -5,6 +5,7 @@ import { bindPersistentEffects } from './persistent.js';
 import { bindAnnotations } from './annotations.js';
 import { bindFlowParticles } from './particles.js';
 import { exposeApi, type SoomAnimationApi } from './api.js';
+import { prefersReducedMotion } from './preferences.js';
 
 /**
  * Entry point for the Hansoom runtime bundle. Browser-side code parses the
@@ -21,11 +22,18 @@ export function bootRuntime(sceneOrJson: AnimationScene | string): SoomAnimation
   const svgRoot = document.querySelector<SVGSVGElement>('.diagram-container svg');
   if (!svgRoot) throw new Error('soom: SVG diagram container not found');
 
+  // `prefers-reduced-motion: reduce` is a critical-criticality a11y signal:
+  // the timeline is built paused (autoplay: false) so we never auto-play, and
+  // when the media query matches we additionally collapse per-segment
+  // durations to ~150ms and skip the marching/focus/particle loops. Controls
+  // remain visible so reduced-motion users can still step through manually.
+  const reducedMotion = prefersReducedMotion();
+
   const els = resolveElements(scene, svgRoot);
-  const built = buildTimeline(scene, els);
-  const persistent = bindPersistentEffects(built.timeline, scene, els);
+  const built = buildTimeline(scene, els, { reducedMotion });
+  const persistent = bindPersistentEffects(built.timeline, scene, els, { reducedMotion });
   const annotations = bindAnnotations(scene);
-  bindFlowParticles(built.timeline, scene, els);
+  bindFlowParticles(built.timeline, scene, els, { reducedMotion });
 
   // Marching line lifecycle: add to each edge as it completes inside the
   // timeline, reset on loop boundary (handled in persistent.ts via onLoop).

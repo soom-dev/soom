@@ -15,6 +15,17 @@ export interface PersistentBindings {
   startMarching(edgeId: EdgeId): void;
 }
 
+export interface BindPersistentOptions {
+  /**
+   * When true, both the marching-line and the focus loop are disabled —
+   * `startMarching` / `startFocus` become no-ops. The continuously-running
+   * `createScope` animations are the primary "decorative motion" the runtime
+   * emits during/after step playback, so reduced-motion users skip them
+   * entirely rather than just shortening their durations.
+   */
+  reducedMotion?: boolean;
+}
+
 /**
  * Wire up persistent effects (marching dotted line on completed edges,
  * focus loop on edges revealing while paused).
@@ -28,9 +39,25 @@ export interface PersistentBindings {
 export function bindPersistentEffects(
   tl: Timeline,
   scene: AnimationScene,
-  els: ResolvedElements
+  els: ResolvedElements,
+  options?: BindPersistentOptions
 ): PersistentBindings {
   void scene;
+
+  if (options?.reducedMotion) {
+    // Both effects are continuously-looping motion that adds no information
+    // beyond the step's class state. Reduced-motion users get the static
+    // completed/active appearance only.
+    const noop = (): void => {
+      /* noop */
+    };
+    return {
+      resetMarching: noop,
+      startFocus: noop,
+      stopFocus: noop,
+      startMarching: noop,
+    };
+  }
 
   let marchScope: Scope | null = null;
   let focusScope: Scope | null = null;
