@@ -146,6 +146,14 @@ export const baseCss = `
     .node.soom-node-active circle,
     .node.soom-node-active ellipse { fill: var(--soom-accent); stroke: var(--soom-accent); }
     .node.soom-node-active { opacity: 1; }
+    /* White label on accent fill: lifts contrast over AA 4.5:1 in both themes. */
+    .node.soom-node-active .nodeLabel,
+    .node.soom-node-active .label text,
+    .node.soom-node-active .label span,
+    .node.soom-node-active .label foreignObject {
+      fill: #fff !important;
+      color: #fff !important;
+    }
     .node.soom-node-completed rect,
     .node.soom-node-completed polygon,
     .node.soom-node-completed circle,
