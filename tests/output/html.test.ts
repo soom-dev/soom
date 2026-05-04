@@ -153,6 +153,33 @@ describe('Playback Controls', () => {
   });
 });
 
+describe('Annotation panel a11y', () => {
+  const animationData = {
+    sceneJson: '{"version":1,"diagramType":"flowchart","elements":{"nodes":{},"edges":{}},"steps":[],"timing":{"idleGap":500,"endHold":1000,"interStepGap":399,"loopDelay":3000}}',
+    runtimeBundle: '/* runtime */',
+  };
+
+  it('annotation panel is rendered as an aria-live="polite" region with aria-atomic="true"', async () => {
+    const html = await renderHtml('<svg></svg>', 'dark', animationData);
+    expect(html).toContain(
+      '<div id="soom-annotations" aria-live="polite" aria-atomic="true">'
+    );
+  });
+
+  it('annotation panel is not emitted in static (no animation) output', async () => {
+    const html = await renderHtml('<svg></svg>', 'dark');
+    expect(html).not.toContain('id="soom-annotations"');
+  });
+
+  it('panel CSS no longer ships display:none — the runtime drives visibility via opacity', async () => {
+    const { baseCss } = await import('../../src/themes/base.js');
+    const block = baseCss.match(/#soom-annotations\s*\{[^}]*\}/);
+    expect(block).not.toBeNull();
+    expect(block![0]).not.toContain('display: none');
+    expect(block![0]).toContain('opacity: 0');
+  });
+});
+
 describe('Animation UX fixes', () => {
   it('fix1: base CSS adds padding-bottom to clear fixed control bar', async () => {
     const { baseCss } = await import('../../src/themes/base.js');
