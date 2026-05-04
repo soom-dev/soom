@@ -24,9 +24,11 @@ describe('Animation integration', () => {
     expect(scene.elements).toBeDefined();
   });
 
-  it('should contain annotation panel', async () => {
+  it('should contain annotation panel with an aria-live region', async () => {
     const html = await readFile('/tmp/test-anim-simple.html', 'utf-8');
-    expect(html).toContain('<div id="soom-annotations">');
+    expect(html).toContain(
+      '<div id="soom-annotations" aria-live="polite" aria-atomic="true">'
+    );
   });
 
   it('should reference the v2 runtime CSS class names', async () => {

@@ -87,7 +87,7 @@ function buildAnimationHtml(
   controlsScript: string
 ): string {
   return `
-  <div id="soom-annotations"></div>
+  <div id="soom-annotations" aria-live="polite" aria-atomic="true"></div>
   ${controlsHtml}
   <script id="soom-scene" type="application/json">${animation.sceneJson}</script>
   <script>${animation.runtimeBundle}</script>
