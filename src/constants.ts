@@ -28,3 +28,15 @@ export const LAYOUT = {
   controlsHeight: 48,
   controlsTouchTarget: 44,
 } as const;
+
+// Node elevation shadows. Geometry encodes depth: rest sits closest to the
+// page (10px blur), active rises (16px blur, larger offset), completed
+// settles back partway. Colors come through theme tokens
+// (--soom-shadow-rest/active/completed) so dark and light themes can tune
+// alpha independently. Edge and particle shadows use a separate visual
+// language and live inline in themes/base.ts — see DESIGN.md.
+export const SHADOW = {
+  rest: 'drop-shadow(-4px 6px 10px var(--soom-shadow-rest))',
+  active: 'drop-shadow(-6px 10px 16px var(--soom-shadow-active))',
+  completed: 'drop-shadow(-4px 7px 12px var(--soom-shadow-completed))',
+} as const;

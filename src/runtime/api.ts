@@ -3,8 +3,7 @@ import type { AnimationScene, EdgeId, NodeId } from '../animation/scene/types.js
 import type { AnnotationBindings } from './annotations.js';
 import type { PersistentBindings } from './persistent.js';
 import type { ResolvedElements } from './elements.js';
-
-const SHADOW_COMPLETED = 'drop-shadow(-4px 7px 12px var(--soom-shadow-completed))';
+import { SHADOW } from '../constants.js';
 
 function applyCompletedThroughStep(scene: AnimationScene, els: ResolvedElements, n: number): void {
   const markNode = (nid: NodeId): void => {
@@ -12,7 +11,7 @@ function applyCompletedThroughStep(scene: AnimationScene, els: ResolvedElements,
     if (!el) return;
     el.classList.remove('soom-node-active');
     el.classList.add('soom-node-completed');
-    el.style.filter = SHADOW_COMPLETED;
+    el.style.filter = SHADOW.completed;
   };
   for (let i = 0; i < n && i < scene.steps.length; i++) {
     const step = scene.steps[i];

@@ -8,6 +8,7 @@ import type {
 } from '../animation/scene/types.js';
 import type { ResolvedElements } from './elements.js';
 import { REDUCED_MOTION_DURATION } from './preferences.js';
+import { SHADOW } from '../constants.js';
 
 const NODE_OPACITY_REST = 0.4;
 const NODE_OPACITY_ACTIVE = 1;
@@ -17,9 +18,6 @@ const NODE_COMPLETE_FADE_DURATION = 200;
 const EDGE_LABEL_FADE_DURATION = 200;
 const STEP_COMPLETE_GAP = 200;
 const DEFAULT_EMPTY_STEP_DURATION = 800;
-const SHADOW_REST = 'drop-shadow(-4px 6px 10px var(--soom-shadow-rest))';
-const SHADOW_ACTIVE = 'drop-shadow(-6px 10px 16px var(--soom-shadow-active))';
-const SHADOW_COMPLETED = 'drop-shadow(-4px 7px 12px var(--soom-shadow-completed))';
 
 /**
  * Read the user's persisted loop preference from `localStorage` under
@@ -147,7 +145,7 @@ function installInitialState(
   els: ResolvedElements
 ): Map<EdgeId, ReturnType<typeof animeSvg.createDrawable>> {
   for (const node of els.nodes.values()) {
-    timeline.set(node, { opacity: NODE_OPACITY_REST, filter: SHADOW_REST }, 0);
+    timeline.set(node, { opacity: NODE_OPACITY_REST, filter: SHADOW.rest }, 0);
   }
   const drawables = new Map<EdgeId, ReturnType<typeof animeSvg.createDrawable>>();
   for (const [edgeId, path] of els.edges) {
@@ -214,7 +212,7 @@ function addStepSegments(
     timeline.add(
       el,
       {
-        filter: [SHADOW_ACTIVE, SHADOW_COMPLETED],
+        filter: [SHADOW.active, SHADOW.completed],
         duration: durations.completeFade,
         ease: 'outQuad',
       },
@@ -259,7 +257,7 @@ function activateNode(
   timeline.add(
     el,
     {
-      filter: [SHADOW_REST, SHADOW_ACTIVE],
+      filter: [SHADOW.rest, SHADOW.active],
       duration: durations.fade,
     },
     offset
