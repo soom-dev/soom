@@ -251,6 +251,50 @@ describe('Playback Controls', () => {
   });
 });
 
+describe('Progress pin (visible while controls auto-hide)', () => {
+  const animationData = {
+    sceneJson:
+      '{"version":1,"diagramType":"flowchart","elements":{"nodes":{},"edges":{}},"steps":[],"timing":{"idleGap":500,"endHold":1000,"interStepGap":399,"loopDelay":3000}}',
+    runtimeBundle: '/* runtime */',
+  };
+
+  it('progress pin element is emitted in animated output (aria-hidden, container + fill)', async () => {
+    const html = await renderHtml('<svg></svg>', 'dark', animationData);
+    expect(html).toContain('id="soom-progress-pin"');
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain('id="soom-progress-pin-fill"');
+  });
+
+  it('progress pin element is not emitted in static (no animation) output', async () => {
+    const html = await renderHtml('<svg></svg>', 'dark');
+    expect(html).not.toContain('id="soom-progress-pin"');
+  });
+
+  it('base CSS: pin is hidden by default and revealed by the controls-hidden body class', async () => {
+    const { baseCss } = await import('../../src/themes/base.js');
+    const block = baseCss.match(/#soom-progress-pin\s*\{[^}]*\}/);
+    expect(block).not.toBeNull();
+    expect(block![0]).toContain('display: none');
+    expect(block![0]).toContain('bottom: 0');
+    expect(block![0]).toContain('height: 2px');
+    expect(baseCss).toContain('.soom-controls-hidden #soom-progress-pin { display: block; }');
+  });
+
+  it('base CSS: fill uses --soom-accent — no new color tokens', async () => {
+    const { baseCss } = await import('../../src/themes/base.js');
+    const fill = baseCss.match(/#soom-progress-pin-fill\s*\{[^}]*\}/);
+    expect(fill).not.toBeNull();
+    expect(fill![0]).toContain('background: var(--soom-accent)');
+  });
+
+  it('controls script reads api.progress and writes it to the pin fill width', () => {
+    const script = buildControlsScript();
+    expect(script).toContain('soom-progress-pin-fill');
+    expect(script).toContain('api.progress');
+    expect(script).toContain('updateProgressPin');
+  });
+});
+
 describe('Annotation panel a11y', () => {
   const animationData = {
     sceneJson: '{"version":1,"diagramType":"flowchart","elements":{"nodes":{},"edges":{}},"steps":[],"timing":{"idleGap":500,"endHold":1000,"interStepGap":399,"loopDelay":3000}}',

@@ -183,6 +183,18 @@ export const baseCss = `
       100% { box-shadow: inset 0 0 0 0 transparent; }
     }
     .soom-seeking { animation: soom-seek-flash 250ms ease forwards; }
+    /* Progress pin — 2px bar shown only while controls auto-hide so the
+       viewer always retains a positional hint. The scrubber inside the
+       controls bar is the primary affordance; this pin is decorative
+       (aria-hidden) and never coexists visually with the scrubber. */
+    #soom-progress-pin {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 2px;
+      display: none; pointer-events: none; z-index: 24;
+    }
+    .soom-controls-hidden #soom-progress-pin { display: block; }
+    #soom-progress-pin-fill {
+      height: 100%; width: 0; background: var(--soom-accent);
+    }
     /* Playback controls */
     .soom-controls {
       position: fixed; bottom: 0; left: 0; right: 0; height: 48px;

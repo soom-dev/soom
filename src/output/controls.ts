@@ -54,6 +54,7 @@ export function buildControlsScript(): string {
     var helpModal = document.getElementById('soom-help-modal');
     var helpClose = document.getElementById('soom-help-close');
     var helpInvoker = null;
+    var progressPinFill = document.getElementById('soom-progress-pin-fill');
 
     var speeds = [0.5, 1, 2, 4];
     var speedIdx = 1;
@@ -91,8 +92,20 @@ export function buildControlsScript(): string {
       if (stepCounter) stepCounter.textContent = cur + '/' + totalSteps;
     }
 
+    function updateProgressPin() {
+      if (!progressPinFill) return;
+      var p = api.progress;
+      if (typeof p !== 'number') return;
+      // Clamp into [0,1] — anime.js progress is well-behaved but the runtime
+      // ships to enough environments that a bad numeric here would render a
+      // visibly-wrong pin without throwing.
+      if (p < 0) p = 0; else if (p > 1) p = 1;
+      progressPinFill.style.width = (p * 100) + '%';
+    }
+
     (function rafLoop() {
       updateScrubber();
+      updateProgressPin();
       requestAnimationFrame(rafLoop);
     })();
 
