@@ -1,21 +1,14 @@
 import { describe, it, expect } from 'bun:test';
 import { loadAnimeJs } from '../../src/output/anime-loader.js';
 
+// anime.js used to ship as a separate UMD <script>; the runtime now inlines
+// the tree-shaken subset directly, so the loader is a stub returning ''.
+// Kept as a function rather than ripped out so html.ts stays untouched on
+// the bundle-size-audit branch.
 describe('loadAnimeJs', () => {
-  it('should return a non-empty string', async () => {
+  it('returns an empty string (anime.js is inlined into the runtime bundle)', async () => {
     const result = await loadAnimeJs();
     expect(typeof result).toBe('string');
-    expect(result.length).toBeGreaterThan(0);
-  });
-
-  it('should contain anime.js library code', async () => {
-    const result = await loadAnimeJs();
-    expect(result).toContain('anime');
-  });
-
-  it('should be a UMD bundle (self-contained)', async () => {
-    const result = await loadAnimeJs();
-    // UMD bundles typically contain module detection patterns
-    expect(result.length).toBeGreaterThan(1000);
+    expect(result).toBe('');
   });
 });

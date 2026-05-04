@@ -9,11 +9,10 @@ if (existsSync(OUT_DIR)) {
   rmSync(OUT_DIR, { recursive: true });
 }
 
-// `external: ['animejs']` keeps the runtime small. Anime.js is loaded
-// separately by `output/anime-loader.ts` as the UMD bundle, which sets
-// `globalThis.anime`. The runtime imports from `./_anime.js` (a thin shim
-// over `globalThis.anime`) instead of bare `'animejs'`, so the bundle has
-// no unresolved imports and runs in a browser as-is.
+// Anime.js is bundled INTO the runtime so the emitted HTML ships a single
+// combined IIFE instead of a separate UMD + globalThis.anime shim. Bun's
+// tree-shaker honors anime.js's `sideEffects: false` and drops the modules
+// the runtime never calls (canvas, draggable, scroll observer, etc.).
 //
 // `format: 'iife'` wraps the whole bundle in a self-executing function so
 // the produced JS is legal inside a classic inline `<script>` (no `export`
@@ -25,7 +24,6 @@ const result = await Bun.build({
   outdir: OUT_DIR,
   target: 'browser',
   minify: true,
-  external: ['animejs'],
   format: 'iife',
   naming: 'runtime.[ext]',
 });
@@ -43,9 +41,9 @@ if (!existsSync(OUT_FILE)) {
 const sizeKb = statSync(OUT_FILE).size / 1024;
 console.log(`✓ Built runtime bundle: ${OUT_FILE} (${sizeKb.toFixed(2)} KB)`);
 
-// Anime.js is external (loaded via globalThis.anime), so the bundle is just
-// Hansoom logic. 12 KB ceiling gives some headroom over the current ~8 KB.
-const CEILING_KB = 12;
+// Anime.js is now inlined (tree-shaken). The combined IIFE replaces the
+// separate UMD script + 10 KB shim, so the ceiling tracks the new total.
+const CEILING_KB = 100;
 if (sizeKb > CEILING_KB) {
   console.error(
     `✗ Runtime bundle exceeded ${CEILING_KB} KB sanity ceiling (${sizeKb.toFixed(2)} KB).`
