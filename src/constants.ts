@@ -20,8 +20,8 @@ export const Z_INDEX = {
 } as const;
 
 export const LAYOUT = {
-  watermarkWidth: 408,
-  watermarkHeight: 61,
+  watermarkWidth: 120,
+  watermarkHeight: 28,
   annotationMaxWidth: 650,
   annotationFontSize: 18,
   toggleButtonSize: 44,
