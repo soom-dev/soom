@@ -6,6 +6,15 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const PARTICLE_RADIUS = 3;
 const PARTICLE_CLASS = 'soom-flow-particle';
 
+export interface BindParticlesOptions {
+  /**
+   * Skip particle injection entirely when the user prefers reduced motion —
+   * the moving particle is purely decorative and adds no information the
+   * edge-reveal already conveys.
+   */
+  reducedMotion?: boolean;
+}
+
 /**
  * Restore flow particles via `svg.createMotionPath`.
  *
@@ -23,8 +32,10 @@ const PARTICLE_CLASS = 'soom-flow-particle';
 export function bindFlowParticles(
   timeline: Timeline,
   scene: AnimationScene,
-  els: ResolvedElements
+  els: ResolvedElements,
+  options?: BindParticlesOptions
 ): void {
+  if (options?.reducedMotion) return;
   for (const [edgeId, path] of els.edges) {
     const edge = scene.elements.edges[edgeId];
     if (!edge) continue;
