@@ -17,7 +17,7 @@ describe('Theme rendering', () => {
   it('should render light theme with soom-light default class', async () => {
     const html = await readFile('/tmp/test-theme-light.html', 'utf-8');
     expect(html).toContain('class="soom-light"');
-    expect(html).toContain('#F8F6FF');
+    expect(html).toContain('#F4F8FC');
   });
 
   it('should use CSS custom properties', async () => {

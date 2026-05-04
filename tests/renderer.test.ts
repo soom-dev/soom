@@ -19,7 +19,7 @@ describe('HTML Renderer', () => {
   it('should use light theme when specified', async () => {
     const html = await renderHtml('<svg></svg>', 'light');
     expect(html).toContain('class="soom-light"');
-    expect(html).toContain('#F8F6FF');
+    expect(html).toContain('#F4F8FC');
   });
 
   it('should include viewport meta tag', async () => {
