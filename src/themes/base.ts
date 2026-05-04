@@ -206,4 +206,71 @@ export const baseCss = `
       font-size: 12px; white-space: nowrap; opacity: 0.7;
       min-width: 44px; text-align: center; flex-shrink: 0;
     }
+    /* Focus indicators — keyboard navigation only.
+       :focus-visible only renders the outline on actual keyboard focus, not
+       on mouse clicks (browsers handle the heuristic). All interactive
+       affordances share the same accent ring so the keyboard path reads as
+       one consistent surface. */
+    .soom-ctrl-btn:focus-visible,
+    .soom-theme-toggle:focus-visible,
+    .soom-watermark:focus-visible,
+    #soom-scrubber:focus-visible {
+      outline: 2px solid var(--soom-accent);
+      outline-offset: 2px;
+    }
+    /* Help modal — centered card on dimmed backdrop. Hidden by default;
+       toggled via .soom-help-open. Same visual language as the controls
+       bar (controls-bg + backdrop blur + accent-border) so the keyboard
+       help reads as part of the chrome, not a foreign UI. */
+    .soom-help-modal {
+      position: fixed; inset: 0; z-index: 35;
+      background: rgba(0, 0, 0, 0.55);
+      display: none; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .soom-help-modal.soom-help-open { display: flex; }
+    .soom-help-modal-card {
+      position: relative;
+      background: var(--soom-controls-bg);
+      color: var(--soom-text);
+      border: 1px solid var(--soom-annot-border);
+      border-radius: 10px;
+      padding: 24px 28px;
+      max-width: 360px; width: 100%;
+      backdrop-filter: blur(8px);
+      font-size: 14px; line-height: 1.5;
+    }
+    .soom-help-modal-title {
+      margin: 0 0 16px 0;
+      padding-right: 36px;
+      font-size: 16px; font-weight: 700;
+      color: var(--soom-text);
+    }
+    .soom-help-modal-list {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 8px 16px;
+      margin: 0;
+    }
+    .soom-help-modal-list dt {
+      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+    }
+    .soom-help-modal-list dd {
+      margin: 0; color: var(--soom-text); opacity: 0.85;
+    }
+    .soom-help-modal-list kbd {
+      display: inline-block;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+      font-size: 12px;
+      background: var(--soom-controls-hover);
+      color: var(--soom-text);
+      padding: 2px 6px; border-radius: 4px;
+      border: 1px solid var(--soom-annot-border);
+      min-width: 22px; text-align: center;
+    }
+    .soom-help-modal-close {
+      position: absolute; top: 8px; right: 8px;
+      min-width: 36px; min-height: 36px;
+      font-size: 14px;
+    }
 `;
