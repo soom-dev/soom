@@ -1,12 +1,10 @@
-import { readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { createRequire } from 'node:module';
-
+// Anime.js used to ship as a separate UMD <script> here, with the runtime
+// reading it back through `globalThis.anime`. The runtime now inlines the
+// tree-shaken subset directly (see `src/runtime/_anime.ts` + the build's
+// dropped `external: ['animejs']`), so this loader returns an empty string
+// and the call site in `output/html.ts` emits a no-op `<script></script>`.
+// Kept as a single function rather than ripped out so the html.ts call site
+// stays in scope of the bundle-size-audit branch.
 export async function loadAnimeJs(): Promise<string> {
-  const require = createRequire(import.meta.url);
-  const animeMain = require.resolve('animejs');
-  // animeMain resolves to dist/modules/index.cjs — go up to package root
-  const pkgRoot = join(dirname(animeMain), '..', '..');
-  const bundlePath = join(pkgRoot, 'dist', 'bundles', 'anime.umd.min.js');
-  return readFile(bundlePath, 'utf-8');
+  return '';
 }
