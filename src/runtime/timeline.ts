@@ -82,7 +82,7 @@ function installInitialState(
     const drawable = animeSvg.createDrawable(path);
     drawables.set(edgeId, drawable);
     timeline.set(drawable, { draw: '0 0' }, 0);
-    timeline.set(path, { opacity: 0.2 }, 0);
+    timeline.set(path, { opacity: 0.5 }, 0);
   }
   for (const label of els.edgeLabels.values()) {
     timeline.set(label, { opacity: 0 }, 0);
@@ -215,7 +215,7 @@ function revealEdge(
     { draw: ['0 0', '0 1'], duration: edge.drawDuration, ease: edge.easing },
     offset
   );
-  timeline.add(path, { opacity: [0.2, 1], duration: edge.drawDuration }, offset);
+  timeline.add(path, { opacity: [0.5, 1], duration: edge.drawDuration }, offset);
   timeline.call(() => path.classList.add('soom-edge-completed'), offset + edge.drawDuration);
 
   const label = els.edgeLabels.get(eid);
