@@ -89,6 +89,7 @@ function buildAnimationHtml(
   return `
   <div id="soom-annotations" aria-live="polite" aria-atomic="true"></div>
   ${controlsHtml}
+  <div id="soom-progress-pin" aria-hidden="true"><div id="soom-progress-pin-fill"></div></div>
   <script id="soom-scene" type="application/json">${animation.sceneJson}</script>
   <script>${animation.runtimeBundle}</script>
   <script>window.soomAnimation = bootRuntime(JSON.parse(document.getElementById('soom-scene').textContent));</script>
