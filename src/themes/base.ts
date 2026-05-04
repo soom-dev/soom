@@ -117,19 +117,22 @@ export const baseCss = `
       fill: var(--soom-cluster-text) !important;
       color: var(--soom-cluster-text) !important;
     }
-    /* Watermark */
+    /* Watermark — corner attribution, demoted from the visual entry point.
+       Fixed bottom-right; sits above the 48px controls bar when visible and
+       drops to the floor when controls auto-hide. */
     .soom-watermark {
       position: fixed;
       bottom: 60px;
-      left: 50%;
-      transform: translateX(-50%);
+      right: 16px;
       z-index: 10;
       text-decoration: none;
-      width: 408px;
-      height: 61px;
-      transition: bottom 400ms ease;
+      width: 120px;
+      height: 28px;
+      opacity: 0.5;
+      transition: bottom 400ms ease, opacity 200ms ease;
     }
-    .soom-controls-hidden .soom-watermark { bottom: 12px; }
+    .soom-watermark:hover { opacity: 1; }
+    .soom-controls-hidden .soom-watermark { bottom: 16px; }
     .soom-wm-svg {
       width: 100%;
       height: 100%;
