@@ -8,7 +8,21 @@ export function buildControlsHtml(): string {
     <span id="soom-step-counter">\u2014</span>
     <button class="soom-ctrl-btn" id="soom-speed" aria-label="Playback speed" title="Cycle speed">1&#xD7;</button>
     <button class="soom-ctrl-btn" id="soom-loop" aria-label="Loop toggle" title="Toggle loop" aria-pressed="false">&#x1F501;</button>
+    <button class="soom-ctrl-btn" id="soom-help" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">?</button>
     <button class="soom-ctrl-btn" id="soom-fullscreen" aria-label="Fullscreen" title="Fullscreen (F)">&#x26F6;</button>
+  </div>
+  <div class="soom-help-modal" id="soom-help-modal" role="dialog" aria-modal="true" aria-labelledby="soom-help-title" aria-hidden="true">
+    <div class="soom-help-modal-card">
+      <h2 id="soom-help-title" class="soom-help-modal-title">Keyboard shortcuts</h2>
+      <dl class="soom-help-modal-list">
+        <dt><kbd>Space</kbd></dt><dd>Play / pause</dd>
+        <dt><kbd>\u2190</kbd> <kbd>\u2192</kbd></dt><dd>Step backward / forward</dd>
+        <dt><kbd>F</kbd></dt><dd>Toggle fullscreen</dd>
+        <dt><kbd>?</kbd></dt><dd>Show this help</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Close help</dd>
+      </dl>
+      <button class="soom-ctrl-btn soom-help-modal-close" id="soom-help-close" aria-label="Close help">&#x2716;</button>
+    </div>
   </div>`;
 }
 
@@ -35,7 +49,11 @@ export function buildControlsScript(): string {
     var stepCounter = document.getElementById('soom-step-counter');
     var btnSpeed = document.getElementById('soom-speed');
     var btnLoop = document.getElementById('soom-loop');
+    var btnHelp = document.getElementById('soom-help');
     var btnFullscreen = document.getElementById('soom-fullscreen');
+    var helpModal = document.getElementById('soom-help-modal');
+    var helpClose = document.getElementById('soom-help-close');
+    var helpInvoker = null;
 
     var speeds = [0.5, 1, 2, 4];
     var speedIdx = 1;
@@ -162,7 +180,65 @@ export function buildControlsScript(): string {
       });
     }
 
+    // Help modal — keyboard-driven (? to open, Esc / backdrop click / X to
+    // close). Pre-rendered in the DOM so the open/close path is just a class
+    // toggle; aria-hidden flips for AT. Focus is trapped to the close button
+    // (currently the only focusable child) and restored to the invoking
+    // element on dismissal so keyboard users don't lose their place.
+    function isHelpOpen() {
+      return !!helpModal && helpModal.classList.contains('soom-help-open');
+    }
+    function openHelp() {
+      if (!helpModal || isHelpOpen()) return;
+      helpInvoker = document.activeElement;
+      helpModal.classList.add('soom-help-open');
+      helpModal.setAttribute('aria-hidden', 'false');
+      if (helpClose) helpClose.focus();
+    }
+    function closeHelp() {
+      if (!helpModal || !isHelpOpen()) return;
+      helpModal.classList.remove('soom-help-open');
+      helpModal.setAttribute('aria-hidden', 'true');
+      if (helpInvoker && typeof helpInvoker.focus === 'function') helpInvoker.focus();
+      helpInvoker = null;
+    }
+    if (btnHelp) btnHelp.addEventListener('click', openHelp);
+    if (helpClose) helpClose.addEventListener('click', closeHelp);
+    if (helpModal) helpModal.addEventListener('click', function(e) {
+      if (e.target === helpModal) closeHelp();
+    });
+    if (helpModal) helpModal.addEventListener('keydown', function(e) {
+      // Focus trap — keep Tab cycling among the modal's focusables. Currently
+      // there is only one (the close button) but the loop is general so the
+      // contract holds if more affordances land in the modal later.
+      if (e.code !== 'Tab') return;
+      var focusables = helpModal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusables.length) { e.preventDefault(); return; }
+      var first = focusables[0];
+      var last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    });
+
     document.addEventListener('keydown', function(e) {
+      // Help-modal shortcuts run before anything else so '?' / Esc work
+      // regardless of focus location, and so other shortcuts are swallowed
+      // while the modal is open (the modal is modal).
+      if (e.code === 'Escape' && isHelpOpen()) {
+        e.preventDefault(); closeHelp(); return;
+      }
+      if (e.key === '?') {
+        e.preventDefault();
+        if (isHelpOpen()) closeHelp(); else openHelp();
+        return;
+      }
+      if (isHelpOpen()) return;
+
       var tag = e.target && e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.code === 'Space') {

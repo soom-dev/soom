@@ -116,6 +116,84 @@ describe('Playback Controls', () => {
     expect(script).toContain('api.timeline.loop');
   });
 
+  describe('Focus indicators + help modal (a11y)', () => {
+    it('base CSS: defines :focus-visible outlines for all interactive affordances', async () => {
+      const { baseCss } = await import('../../src/themes/base.js');
+      // One block covers all four selectors so the keyboard ring reads as one consistent surface.
+      expect(baseCss).toContain('.soom-ctrl-btn:focus-visible');
+      expect(baseCss).toContain('.soom-theme-toggle:focus-visible');
+      expect(baseCss).toContain('.soom-watermark:focus-visible');
+      expect(baseCss).toContain('#soom-scrubber:focus-visible');
+      // Outline is the accent token + 2px offset, per the visual identity contract.
+      expect(baseCss).toMatch(/outline:\s*2px\s+solid\s+var\(--soom-accent\)/);
+      expect(baseCss).toContain('outline-offset: 2px');
+    });
+
+    it('base CSS: defines the help modal styling (overlay, card, kbd entries)', async () => {
+      const { baseCss } = await import('../../src/themes/base.js');
+      expect(baseCss).toContain('.soom-help-modal');
+      expect(baseCss).toContain('.soom-help-modal.soom-help-open');
+      expect(baseCss).toContain('.soom-help-modal-card');
+      expect(baseCss).toContain('.soom-help-modal-list kbd');
+      expect(baseCss).toContain('.soom-help-modal-close');
+    });
+
+    it('buildControlsHtml: emits a help button with the (?) shortcut hint', () => {
+      const html = buildControlsHtml();
+      const btn = html.match(/<button[^>]*id="soom-help"[^>]*>/);
+      expect(btn).not.toBeNull();
+      expect(btn![0]).toContain('aria-label="Keyboard shortcuts"');
+      expect(btn![0]).toContain('title="Keyboard shortcuts (?)"');
+    });
+
+    it('buildControlsHtml: emits a hidden help modal as a labelled aria-modal dialog', () => {
+      const html = buildControlsHtml();
+      expect(html).toContain('id="soom-help-modal"');
+      expect(html).toContain('role="dialog"');
+      expect(html).toContain('aria-modal="true"');
+      expect(html).toContain('aria-labelledby="soom-help-title"');
+      expect(html).toContain('aria-hidden="true"');
+      expect(html).toContain('id="soom-help-close"');
+      // Each documented shortcut is present in the kbd list.
+      expect(html).toContain('<kbd>Space</kbd>');
+      expect(html).toContain('<kbd>F</kbd>');
+      expect(html).toContain('<kbd>?</kbd>');
+      expect(html).toContain('<kbd>Esc</kbd>');
+    });
+
+    it('buildControlsScript: ? toggles the help modal; Esc dismisses while open', () => {
+      const script = buildControlsScript();
+      expect(script).toContain("e.key === '?'");
+      expect(script).toContain("e.code === 'Escape'");
+      expect(script).toContain('soom-help-open');
+      expect(script).toContain('aria-hidden');
+    });
+
+    it('buildControlsScript: defines a focus trap and restores focus to the invoker on close', () => {
+      const script = buildControlsScript();
+      // Focus trap reacts to Tab keys in the modal's keydown listener.
+      expect(script).toContain("'Tab'");
+      expect(script).toContain('querySelectorAll');
+      expect(script).toContain('shiftKey');
+      // Restoration of pre-open focus.
+      expect(script).toContain('helpInvoker');
+      expect(script).toContain('helpInvoker.focus()');
+    });
+
+    it('buildControlsScript: backdrop click on the modal closes it', () => {
+      const script = buildControlsScript();
+      // Outer-target check is the conventional backdrop-vs-card disambiguator.
+      expect(script).toContain('e.target === helpModal');
+    });
+
+    it('buildControlsScript: swallows other shortcuts while the modal is open', () => {
+      const script = buildControlsScript();
+      expect(script).toContain('isHelpOpen()');
+      // The early-return after Esc/? handling keeps Space/Arrow/F from firing.
+      expect(script).toContain('if (isHelpOpen()) return');
+    });
+  });
+
   it('buildControlsHtml: loop button defaults to OFF (no soom-ctrl-active class, aria-pressed="false")', () => {
     const html = buildControlsHtml();
     const loopBtn = html.match(/<button[^>]*id="soom-loop"[^>]*>/);
