@@ -116,6 +116,26 @@ describe('Playback Controls', () => {
     expect(script).toContain('api.timeline.loop');
   });
 
+  it('buildControlsHtml: loop button defaults to OFF (no soom-ctrl-active class, aria-pressed="false")', () => {
+    const html = buildControlsHtml();
+    const loopBtn = html.match(/<button[^>]*id="soom-loop"[^>]*>/);
+    expect(loopBtn).not.toBeNull();
+    expect(loopBtn![0]).not.toContain('soom-ctrl-active');
+    expect(loopBtn![0]).toContain('aria-pressed="false"');
+  });
+
+  it('buildControlsScript: hydrates loopEnabled from localStorage "soom-loop"', () => {
+    const script = buildControlsScript();
+    expect(script).toContain("localStorage.getItem('soom-loop')");
+    // Mirrors the soom-theme persistence pattern (string '1' = on, anything else = off)
+    expect(script).toContain("=== '1'");
+  });
+
+  it('buildControlsScript: persists loop toggle to localStorage on click', () => {
+    const script = buildControlsScript();
+    expect(script).toContain("localStorage.setItem('soom-loop'");
+  });
+
   it('buildControlsScript: speed cycles through 0.5/1/2/4', () => {
     const script = buildControlsScript();
     expect(script).toContain('0.5');

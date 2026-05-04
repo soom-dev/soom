@@ -21,6 +21,21 @@ const SHADOW_REST = 'drop-shadow(-4px 6px 10px var(--soom-shadow-rest))';
 const SHADOW_ACTIVE = 'drop-shadow(-6px 10px 16px var(--soom-shadow-active))';
 const SHADOW_COMPLETED = 'drop-shadow(-4px 7px 12px var(--soom-shadow-completed))';
 
+/**
+ * Read the user's persisted loop preference from `localStorage` under
+ * `soom-loop` ('1' = on, anything else = off). Mirrors the `soom-theme`
+ * persistence pattern in `src/output/toggle.ts`. Returns `false` (default
+ * OFF) when storage is unavailable or unset.
+ */
+function persistedLoopPreference(): boolean {
+  try {
+    const ls = (globalThis as { localStorage?: Storage }).localStorage;
+    return ls?.getItem('soom-loop') === '1';
+  } catch {
+    return false;
+  }
+}
+
 export interface BuiltTimeline {
   timeline: Timeline;
   drawables: Map<EdgeId, ReturnType<typeof animeSvg.createDrawable>>;
@@ -82,7 +97,7 @@ export function buildTimeline(
   const durations = durationsFor(reducedMotion);
   const timeline = createTimeline({
     autoplay: false,
-    loop: true,
+    loop: persistedLoopPreference(),
     loopDelay: scene.timing.loopDelay,
     defaults: { ease: 'inOutQuad' },
   });

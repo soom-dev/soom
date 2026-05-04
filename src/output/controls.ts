@@ -7,7 +7,7 @@ export function buildControlsHtml(): string {
     <input id="soom-scrubber" type="range" min="0" max="0" value="0" step="1" aria-label="Timeline scrubber">
     <span id="soom-step-counter">\u2014</span>
     <button class="soom-ctrl-btn" id="soom-speed" aria-label="Playback speed" title="Cycle speed">1&#xD7;</button>
-    <button class="soom-ctrl-btn soom-ctrl-active" id="soom-loop" aria-label="Loop toggle" title="Toggle loop" aria-pressed="true">&#x1F501;</button>
+    <button class="soom-ctrl-btn" id="soom-loop" aria-label="Loop toggle" title="Toggle loop" aria-pressed="false">&#x1F501;</button>
     <button class="soom-ctrl-btn" id="soom-fullscreen" aria-label="Fullscreen" title="Fullscreen (F)">&#x26F6;</button>
   </div>`;
 }
@@ -40,7 +40,13 @@ export function buildControlsScript(): string {
     var speeds = [0.5, 1, 2, 4];
     var speedIdx = 1;
     var isPlaying = true;
-    var loopEnabled = true;
+    // Loop default is OFF; user choice persists under 'soom-loop' alongside
+    // the existing 'soom-theme' key. Hydrate from storage so the UI reflects
+    // whatever the timeline already booted with.
+    var loopEnabled = false;
+    try {
+      loopEnabled = localStorage.getItem('soom-loop') === '1';
+    } catch (_) { /* sandboxed iframe / file:// in some browsers */ }
     var scrubbingActive = false;
     var totalSteps = api.totalSteps;
 
@@ -118,12 +124,30 @@ export function buildControlsScript(): string {
       btnSpeed.textContent = (s === 0.5 ? '0.5' : String(s)) + '\u00D7';
     });
 
-    if (btnLoop) btnLoop.addEventListener('click', function() {
-      loopEnabled = !loopEnabled;
-      api.timeline.loop = loopEnabled;
+    // anime.js v4 consumes the construction-time loop param into
+    // iterationCount (true -> Infinity, false -> 1). Assigning to the
+    // side-channel .loop after construction keeps onComplete coherent, but
+    // the tick loop only respects iterationCount -- set both so the toggle
+    // takes effect mid-flight, not just on the next page reload.
+    function syncLoopState(on) {
+      api.timeline.loop = on;
+      api.timeline.iterationCount = on ? Infinity : 1;
+    }
+    syncLoopState(loopEnabled);
+
+    if (btnLoop) {
       btnLoop.classList.toggle('soom-ctrl-active', loopEnabled);
       btnLoop.setAttribute('aria-pressed', String(loopEnabled));
-    });
+      btnLoop.addEventListener('click', function() {
+        loopEnabled = !loopEnabled;
+        syncLoopState(loopEnabled);
+        btnLoop.classList.toggle('soom-ctrl-active', loopEnabled);
+        btnLoop.setAttribute('aria-pressed', String(loopEnabled));
+        try {
+          localStorage.setItem('soom-loop', loopEnabled ? '1' : '0');
+        } catch (_) { /* sandboxed iframe / file:// in some browsers */ }
+      });
+    }
 
     if (btnFullscreen) {
       btnFullscreen.addEventListener('click', function() {
