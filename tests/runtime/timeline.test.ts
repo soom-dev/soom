@@ -75,7 +75,77 @@ describe('buildTimeline', () => {
     const built = buildTimeline(scene, els);
     expect(built.stepEndOffsets[0]).toBeGreaterThan(built.stepOffsets[0]);
   });
+
+  describe('loop persistence', () => {
+    // anime.js v4 consumes the `loop` init param into `iterationCount`:
+    // `loop: true` → Infinity, `loop: false` → 1. The constructed timeline
+    // does NOT expose a public `.loop` getter (assigning `timeline.loop = X`
+    // at runtime is a side-channel used by controls.ts that anime.js's tick
+    // loop does not honor — see the recent decision log on controls→timeline
+    // wiring). So we assert against `iterationCount`, which is the actual
+    // mechanism that drives looping.
+
+    it('defaults to a single iteration (loop OFF) when localStorage is not set', async () => {
+      delete (globalThis as { localStorage?: Storage }).localStorage;
+      const { resolveElements } = await import('../../src/runtime/elements.js');
+      const { buildTimeline } = await import('../../src/runtime/timeline.js');
+      const svg = svgRoot(`<g class="node" id="flowchart-A-0"><rect/></g>`);
+      const scene = makeFlowScene({
+        nodes: { A: { svgId: 'flowchart-A-0', label: 'A' } },
+        edges: {},
+        steps: [{ id: 'step-0', activate: { nodes: ['A'], edges: [] }, parallel: false }],
+      });
+      const built = buildTimeline(scene, resolveElements(scene, svg));
+      expect(iterationsOf(built.timeline)).toBe(1);
+    });
+
+    it('boots with infinite iterations (loop ON) when localStorage "soom-loop" === "1"', async () => {
+      (globalThis as { localStorage?: Storage }).localStorage = stubLocalStorage({ 'soom-loop': '1' });
+      const { resolveElements } = await import('../../src/runtime/elements.js');
+      const { buildTimeline } = await import('../../src/runtime/timeline.js');
+      const svg = svgRoot(`<g class="node" id="flowchart-A-0"><rect/></g>`);
+      const scene = makeFlowScene({
+        nodes: { A: { svgId: 'flowchart-A-0', label: 'A' } },
+        edges: {},
+        steps: [{ id: 'step-0', activate: { nodes: ['A'], edges: [] }, parallel: false }],
+      });
+      const built = buildTimeline(scene, resolveElements(scene, svg));
+      expect(iterationsOf(built.timeline)).toBe(Infinity);
+      delete (globalThis as { localStorage?: Storage }).localStorage;
+    });
+
+    it('treats any value other than "1" as OFF (e.g. "0", "true", legacy)', async () => {
+      (globalThis as { localStorage?: Storage }).localStorage = stubLocalStorage({ 'soom-loop': '0' });
+      const { resolveElements } = await import('../../src/runtime/elements.js');
+      const { buildTimeline } = await import('../../src/runtime/timeline.js');
+      const svg = svgRoot(`<g class="node" id="flowchart-A-0"><rect/></g>`);
+      const scene = makeFlowScene({
+        nodes: { A: { svgId: 'flowchart-A-0', label: 'A' } },
+        edges: {},
+        steps: [{ id: 'step-0', activate: { nodes: ['A'], edges: [] }, parallel: false }],
+      });
+      const built = buildTimeline(scene, resolveElements(scene, svg));
+      expect(iterationsOf(built.timeline)).toBe(1);
+      delete (globalThis as { localStorage?: Storage }).localStorage;
+    });
+  });
 });
+
+function iterationsOf(timeline: unknown): number {
+  return (timeline as { iterationCount?: number }).iterationCount ?? 1;
+}
+
+function stubLocalStorage(seed: Record<string, string>): Storage {
+  const store = new Map(Object.entries(seed));
+  return {
+    get length() { return store.size; },
+    clear: () => store.clear(),
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => { store.set(k, v); },
+    removeItem: (k: string) => { store.delete(k); },
+    key: (i: number) => Array.from(store.keys())[i] ?? null,
+  };
+}
 
 function svgRoot(inner: string): SVGSVGElement {
   const doc = (globalThis as { document: Document }).document;
