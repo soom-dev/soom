@@ -1,0 +1,27 @@
+name = "hansoom-cloud"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+
+[assets]
+directory = "public"
+
+[vars]
+GITHUB_CLIENT_ID = ""
+
+# R2 bucket for rendered HTML, source text, and OG images.
+# Create with: wrangler r2 bucket create hansoom-diagrams
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "hansoom-diagrams"
+
+# D1 database for diagram metadata + rate limits.
+# Create with: wrangler d1 create hansoom-cloud
+# Then paste the database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "hansoom-cloud"
+database_id = "PLACEHOLDER_REPLACE_AFTER_d1_create"
+
+# Daily cleanup of expired rate-limit rows.
+[triggers]
+crons = ["0 3 * * *"]

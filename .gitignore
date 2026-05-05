@@ -141,6 +141,7 @@ vite.config.ts.timestamp-*
 
 *.html
 !examples/*.html
+!cloud/public/**/*.html
 .hansoom/
 .soom/
 /tmp/
