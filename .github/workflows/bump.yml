@@ -1,0 +1,80 @@
+name: Bump version on merge
+
+# Fires when a PR is closed against `main`. The job-level `if:` narrows to
+# merged PRs that carry a `release:major|minor|patch` label. On match:
+# bump package.json, commit + tag with `npm version`, push to `main`, and
+# draft a GitHub release. The existing `publish.yml` consumes the
+# release-published event (after a human clicks Publish in the GitHub UI)
+# and runs `npm publish` with NPM_TOKEN — no changes there.
+#
+# Branch-protection note: pushing to `main` from this workflow requires
+# GitHub Actions to be on the bypass list for the branch-protection rule.
+# Without that bypass the `git push` step will fail with `protected branch`.
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  bump:
+    name: Bump version + tag + draft release
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.merged == true &&
+      (contains(github.event.pull_request.labels.*.name, 'release:major') ||
+       contains(github.event.pull_request.labels.*.name, 'release:minor') ||
+       contains(github.event.pull_request.labels.*.name, 'release:patch'))
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Precedence major > minor > patch; default patch if a release-labeled
+      # PR has ambiguous level (per acceptance criteria). The `if:` above
+      # already guarantees at least one release:* label is present.
+      - name: Determine bump level
+        id: level
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          if   echo "$LABELS" | grep -q '"release:major"'; then echo "level=major" >> "$GITHUB_OUTPUT"
+          elif echo "$LABELS" | grep -q '"release:minor"'; then echo "level=minor" >> "$GITHUB_OUTPUT"
+          else                                                  echo "level=patch" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # `npm version` edits package.json, creates a commit, and creates a
+      # `v<X.Y.Z>` tag in one shot. The output captured here is that literal
+      # tag string (e.g. `v0.2.0`).
+      - name: Bump version
+        id: bump
+        run: |
+          NEW=$(npm version ${{ steps.level.outputs.level }} -m "chore(release): %s")
+          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+
+      - name: Push commit + tag
+        run: git push origin main --follow-tags
+
+      # `--draft` keeps the human gate. publish.yml fires on
+      # `release: published`, so npm publish doesn't run until a human
+      # clicks Publish in the GitHub Releases UI.
+      - name: Draft GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.bump.outputs.version }}" \
+            --draft \
+            --generate-notes \
+            --title "${{ steps.bump.outputs.version }}"
