@@ -76,3 +76,23 @@ fi
 # Prune stale refs
 git worktree prune
 echo "✓ Stale worktree refs pruned"
+
+# Vault cleanup: delete the agent-ready prompt file (it's served its purpose).
+# Real-time cleanup — no scheduler dependency. Git history preserves the prompt.
+VAULT_AGENT_READY="$HOME/ObsidianVault/hansoom/backlog/agent-ready"
+SCOPE_ID="${NAME#soom-}"
+shopt -s nullglob
+matches=( "$VAULT_AGENT_READY"/*-*${SCOPE_ID}*.md )
+shopt -u nullglob
+if [ ${#matches[@]} -eq 1 ]; then
+  PROMPT_FILE="${matches[0]}"
+  ( cd "$HOME/ObsidianVault/hansoom" && git rm "$PROMPT_FILE" 2>/dev/null || rm "$PROMPT_FILE" )
+  echo "✓ Vault agent-ready file deleted: $(basename "$PROMPT_FILE")"
+  echo "  Reminder: write a learning note in vault learnings/ before pushing the vault commit."
+elif [ ${#matches[@]} -gt 1 ]; then
+  echo "  WARNING: multiple agent-ready files match '$SCOPE_ID':"
+  printf '    %s\n' "${matches[@]}"
+  echo "  Delete manually."
+else
+  echo "  Note: no agent-ready file found matching '$SCOPE_ID' in $VAULT_AGENT_READY (already deleted?)"
+fi
