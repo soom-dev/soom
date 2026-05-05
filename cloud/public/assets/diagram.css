@@ -1,0 +1,202 @@
+/* Diagram rendering styles — extracted from src/themes/base.ts + src/themes/dark.ts.
+   These styles apply to the rendered SVG inside the preview panel and in
+   standalone saved HTML. Keep in sync with the CLI's theme output. */
+
+.diagram-container svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Node shadow elevation */
+.edgePath path,
+.flowchart-link {
+  filter: drop-shadow(1px 2px 3px var(--soom-edge-shadow));
+}
+
+.edgePath .path,
+.flowchart-link {
+  stroke: var(--soom-edge-stroke) !important;
+}
+.marker { fill: var(--soom-marker-fill) !important; stroke: var(--soom-marker-fill) !important; }
+.arrowheadPath { fill: var(--soom-marker-fill) !important; }
+marker path { fill: var(--soom-marker-fill) !important; stroke: var(--soom-marker-fill) !important; }
+
+.label text,
+.nodeLabel,
+.node .label text,
+.label span,
+.node .label span,
+.node .label foreignObject,
+.label foreignObject {
+  fill: var(--soom-label-color) !important;
+  color: var(--soom-label-color) !important;
+}
+
+.node foreignObject {
+  overflow: hidden !important;
+  text-align: center !important;
+  font-weight: 700 !important;
+}
+.node foreignObject > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  text-align: center !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+.nodeLabel {
+  overflow: hidden !important;
+  word-wrap: break-word !important;
+  text-align: center !important;
+  padding: 8px !important;
+  line-height: 1.3 !important;
+  font-weight: 700 !important;
+}
+
+.edgeLabel {
+  background-color: var(--soom-edge-label-bg) !important;
+  color: var(--soom-edge-label-text) !important;
+}
+.edgeLabel p {
+  background-color: var(--soom-edge-label-bg) !important;
+  color: var(--soom-edge-label-text) !important;
+}
+.edgeLabel rect {
+  fill: var(--soom-edge-label-bg) !important;
+  opacity: 0.9 !important;
+}
+.edgeLabel .label span {
+  color: var(--soom-edge-label-text) !important;
+}
+
+.cluster rect {
+  fill: var(--soom-subgraph-bg) !important;
+  stroke: var(--soom-subgraph-border) !important;
+  stroke-dasharray: 8 4;
+  stroke-width: 1.5px !important;
+}
+.cluster[data-depth="1"] rect,
+.cluster[data-depth="2"] rect {
+  fill: var(--soom-subgraph-nested-bg) !important;
+  stroke-dasharray: 4 3;
+  stroke-width: 1.5px !important;
+}
+.cluster-label text,
+.cluster-label span,
+.cluster text {
+  fill: var(--soom-cluster-text) !important;
+  color: var(--soom-cluster-text) !important;
+}
+
+/* Animation states */
+.node.soom-node-active rect,
+.node.soom-node-active polygon,
+.node.soom-node-active circle,
+.node.soom-node-active ellipse { fill: var(--soom-accent); stroke: var(--soom-accent); }
+.node.soom-node-active { opacity: 1; }
+.node.soom-node-active .nodeLabel,
+.node.soom-node-active .label text,
+.node.soom-node-active .label span,
+.node.soom-node-active .label foreignObject {
+  fill: #fff !important;
+  color: #fff !important;
+}
+.node.soom-node-completed rect,
+.node.soom-node-completed polygon,
+.node.soom-node-completed circle,
+.node.soom-node-completed ellipse { fill: var(--soom-completed-fill); stroke: var(--soom-accent); }
+.node.soom-node-completed { opacity: 0.85; }
+.soom-edge-completed { stroke: var(--soom-edge-stroke-active) !important; opacity: 1 !important; }
+
+/* Annotation panel */
+#soom-annotations {
+  position: fixed; bottom: 128px; left: 50%; transform: translateX(-50%);
+  background: var(--soom-annot-bg); color: var(--soom-annot-text); padding: 14px 28px;
+  border-radius: 10px; font-size: 18px; z-index: 20;
+  backdrop-filter: blur(8px); border: 1px solid var(--soom-annot-border);
+  transition: opacity 300ms ease, bottom 400ms ease; max-width: 650px; text-align: center;
+  opacity: 0; line-height: 1.6;
+}
+
+.soom-flow-particle { fill: var(--soom-edge-color); filter: drop-shadow(0 0 6px var(--soom-edge-glow)); }
+
+@keyframes soom-seek-flash {
+  0%   { box-shadow: inset 0 0 0 0 transparent; }
+  40%  { box-shadow: inset 0 0 0 2px var(--soom-accent); }
+  100% { box-shadow: inset 0 0 0 0 transparent; }
+}
+.soom-seeking { animation: soom-seek-flash 250ms ease forwards; }
+
+#soom-progress-pin {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 2px;
+  display: none; pointer-events: none; z-index: 24;
+}
+.soom-controls-hidden #soom-progress-pin { display: block; }
+#soom-progress-pin-fill { height: 100%; width: 0; background: var(--soom-accent); }
+
+.soom-controls {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 48px;
+  display: flex; align-items: center; padding: 0 12px; gap: 6px;
+  background: var(--soom-controls-bg); backdrop-filter: blur(8px);
+  z-index: 25; transition: opacity 400ms ease;
+}
+.soom-ctrl-btn {
+  min-width: 44px; min-height: 44px; border: none; border-radius: 6px;
+  background: transparent; color: var(--soom-text, #E8EDF2); cursor: pointer;
+  font-size: 15px; display: flex; align-items: center; justify-content: center;
+  transition: background 200ms ease; padding: 0; flex-shrink: 0;
+}
+.soom-ctrl-btn:hover { background: var(--soom-controls-hover); }
+.soom-ctrl-btn.soom-ctrl-active { color: var(--soom-accent); }
+#soom-scrubber {
+  flex: 1; height: 4px; cursor: pointer; accent-color: var(--soom-accent);
+  min-width: 60px;
+}
+#soom-step-counter {
+  font-size: 12px; white-space: nowrap; opacity: 0.7;
+  min-width: 44px; text-align: center; flex-shrink: 0;
+}
+
+.soom-ctrl-btn:focus-visible,
+#soom-scrubber:focus-visible {
+  outline: 2px solid var(--soom-accent);
+  outline-offset: 2px;
+}
+
+.soom-help-modal {
+  position: fixed; inset: 0; z-index: 35;
+  background: rgba(0, 0, 0, 0.55);
+  display: none; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.soom-help-modal.soom-help-open { display: flex; }
+.soom-help-modal-card {
+  position: relative;
+  background: var(--soom-controls-bg, rgba(16, 24, 36, 0.92));
+  color: var(--soom-text, #E8EDF2);
+  border: 1px solid var(--soom-annot-border, rgba(10, 123, 196, 0.3));
+  border-radius: 10px;
+  padding: 24px 28px;
+  max-width: 360px; width: 100%;
+  backdrop-filter: blur(8px);
+  font-size: 14px; line-height: 1.5;
+}
+.soom-help-modal-title { margin: 0 0 16px 0; font-size: 16px; font-weight: 700; }
+.soom-help-modal-list {
+  display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0;
+}
+.soom-help-modal-list dt { display: flex; gap: 6px; align-items: center; }
+.soom-help-modal-list dd { margin: 0; opacity: 0.85; }
+.soom-help-modal-list kbd {
+  display: inline-block; font-family: monospace; font-size: 12px;
+  background: var(--soom-controls-hover, rgba(255,255,255,0.08));
+  padding: 2px 6px; border-radius: 4px;
+  border: 1px solid var(--soom-annot-border, rgba(10, 123, 196, 0.3));
+  min-width: 22px; text-align: center;
+}
+.soom-help-modal-close { position: absolute; top: 8px; right: 8px; min-width: 36px; min-height: 36px; font-size: 14px; }
