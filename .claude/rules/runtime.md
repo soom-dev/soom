@@ -39,7 +39,7 @@ These rules apply whenever you touch `src/runtime/**` or `src/animation/scene/**
 ## Cross-references (do not duplicate)
 
 - Anime.js usage rules and the v3→v4 migration cheat-sheet live in the **`using-anime-js` skill** at `.claude/skills/using-anime-js/SKILL.md` (auto-triggers on animation tasks).
-- Project-wide conventions and the `ask_before_changing` scope guardrails live at `~/ObsidianVault/hansoom/_context/CONVENTIONS.md`.
+- Project-wide conventions and the `ask_before_changing` scope guardrails live at `~/ObsidianVault/hansoom/_context/code-conventions.md`.
 - Recent learnings that informed these invariants: `~/ObsidianVault/hansoom/learnings/refactor-animejs-timeline.md`, `learnings/feat-runtime-anime-native.md`, `learnings/chore-runtime-debt.md`.
 
 ## When in doubt
