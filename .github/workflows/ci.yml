@@ -145,16 +145,12 @@ jobs:
   test:
     name: Test
     needs: [changes]
-    # Skip on doc-only PRs. Always run on push-to-main as the safety net.
-    # On code PRs without a release:* label, run only shard 1 — that shard
-    # carries the unit-test step (gated separately below) and skips the
-    # e2e step. Shards 2-4 drop entirely on non-release PRs because they
-    # would only run e2e. Push-to-main and release-labeled PRs run all 4
-    # shards as before.
-    if: |
-      github.event_name == 'push' ||
-      (needs.changes.outputs.code == 'true' &&
-        (matrix.shard == 1 || needs.changes.outputs.e2e == 'true'))
+    if: github.event_name == 'push' || needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
