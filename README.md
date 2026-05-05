@@ -96,17 +96,6 @@ bun run build
 - **Rendering:** [Playwright](https://playwright.dev/) for headless SVG generation
 - **Sanitization:** DOMPurify with a strict Content-Security-Policy in every output
 
-## Roadmap
-
-- [x] **Phase 0** — Project scaffold, CLI foundation, static Mermaid rendering
-- [x] **Phase 1** — Animation engine (edge flow, node states, playback controls, step annotations)
-- [ ] **Phase 2** — Launch (Hacker News, community setup, npm publish)
-- [ ] **Phase 3** — Timeline YAML (custom sequences, parallel steps, choreographed animations)
-- [ ] **Phase 4** — AI agent integration (structured context export, trace overlay)
-- [ ] **Phase 5** — Monetization (Pro tier, funding decision)
-- [ ] **Phase 6** — Multi-format support (D2, PlantUML, code scanner)
-- [ ] **Phase 7** — Platform (hosted rendering API, VS Code extension, GitHub Action)
-
 ## Contributing
 
 Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, branch and commit conventions, and the validation checklist your change should pass before merge.
