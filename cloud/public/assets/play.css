@@ -1,0 +1,365 @@
+:root {
+  --cloud-bg: #111B27;
+  --cloud-surface: #1E2A3A;
+  --cloud-surface-alt: #162232;
+  --cloud-border: #2A3F55;
+  --cloud-text: #E8EDF2;
+  --cloud-text-dim: #A8C4EC;
+  --cloud-accent: #0A7BC4;
+  --cloud-accent-hover: #0C8FE0;
+  --cloud-accent-glow: rgba(10, 123, 196, 0.3);
+  --cloud-error: #E54D4D;
+  --cloud-success: #4DCEA6;
+  --cloud-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --cloud-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--cloud-bg);
+  color: var(--cloud-text);
+  font-family: var(--cloud-font);
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────── */
+.soom-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 48px;
+  background: var(--cloud-surface);
+  border-bottom: 1px solid var(--cloud-border);
+  flex-shrink: 0;
+}
+
+.soom-logo {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--cloud-text);
+  text-decoration: none;
+  letter-spacing: -0.5px;
+}
+
+.soom-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.soom-header-link {
+  color: var(--cloud-text-dim);
+  text-decoration: none;
+  font-size: 13px;
+}
+.soom-header-link:hover { color: var(--cloud-text); }
+
+/* ── Buttons ────────────────────────────────────────── */
+.soom-btn {
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 16px;
+  transition: background 150ms ease, opacity 150ms ease;
+  font-family: var(--cloud-font);
+}
+.soom-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.soom-btn-primary {
+  background: var(--cloud-accent);
+  color: #fff;
+}
+.soom-btn-primary:hover:not(:disabled) { background: var(--cloud-accent-hover); }
+
+.soom-btn-secondary {
+  background: transparent;
+  color: var(--cloud-text-dim);
+  border: 1px solid var(--cloud-border);
+}
+.soom-btn-secondary:hover:not(:disabled) {
+  background: rgba(255,255,255,0.05);
+  color: var(--cloud-text);
+}
+
+.soom-btn-accent {
+  background: transparent;
+  color: var(--cloud-accent);
+  border: 1px solid var(--cloud-accent);
+}
+.soom-btn-accent:hover:not(:disabled) {
+  background: var(--cloud-accent-glow);
+}
+
+/* ── Main Layout ────────────────────────────────────── */
+.soom-main {
+  display: flex;
+  height: calc(100vh - 48px - 36px);
+  overflow: hidden;
+}
+
+/* ── Editor Panel ───────────────────────────────────── */
+.soom-editor-panel {
+  width: 420px;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--cloud-border);
+  background: var(--cloud-surface);
+  flex-shrink: 0;
+}
+
+.soom-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--cloud-border);
+}
+
+.soom-editor-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--cloud-text-dim);
+}
+
+.soom-textarea {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  padding: 16px;
+  font-family: var(--cloud-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--cloud-text);
+  background: var(--cloud-surface-alt);
+  tab-size: 2;
+}
+.soom-textarea::placeholder {
+  color: rgba(168, 196, 236, 0.35);
+}
+
+.soom-editor-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--cloud-border);
+}
+
+.soom-status {
+  font-size: 12px;
+  color: var(--cloud-text-dim);
+  flex: 1;
+  text-align: right;
+}
+.soom-status.error { color: var(--cloud-error); }
+.soom-status.success { color: var(--cloud-success); }
+
+/* ── Preview Panel ──────────────────────────────────── */
+.soom-preview-panel {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--cloud-bg);
+  background-image: radial-gradient(circle, #3D5A6E 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.soom-preview-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--cloud-text-dim);
+  font-size: 15px;
+}
+.soom-preview-empty strong { color: var(--cloud-text); }
+
+.soom-preview-content {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.soom-preview-content .diagram-container {
+  width: 100%;
+  max-width: 100%;
+  max-height: 90%;
+}
+.soom-preview-content .diagram-container svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.soom-preview-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+}
+.soom-preview-error p {
+  color: var(--cloud-error);
+  background: rgba(229, 77, 77, 0.1);
+  border: 1px solid rgba(229, 77, 77, 0.3);
+  border-radius: 8px;
+  padding: 16px 24px;
+  font-size: 14px;
+  max-width: 500px;
+  line-height: 1.5;
+}
+
+/* ── Loading Spinner ────────────────────────────────── */
+.soom-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: var(--cloud-text-dim);
+  font-size: 14px;
+}
+
+@keyframes soom-spin {
+  to { transform: rotate(360deg); }
+}
+.soom-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--cloud-border);
+  border-top-color: var(--cloud-accent);
+  border-radius: 50%;
+  animation: soom-spin 0.8s linear infinite;
+}
+
+/* ── Share Modal ────────────────────────────────────── */
+.soom-share-modal {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.6);
+  display: none; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.soom-share-modal.open { display: flex; }
+
+.soom-share-card {
+  background: var(--cloud-surface);
+  border: 1px solid var(--cloud-border);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 440px;
+  width: 100%;
+}
+.soom-share-card h3 {
+  font-size: 16px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.soom-share-url {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.soom-share-url input {
+  flex: 1;
+  background: var(--cloud-surface-alt);
+  border: 1px solid var(--cloud-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--cloud-text);
+  font-family: var(--cloud-mono);
+  font-size: 13px;
+  outline: none;
+}
+.soom-share-url input:focus {
+  border-color: var(--cloud-accent);
+}
+.soom-share-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Footer ─────────────────────────────────────────── */
+.soom-footer {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--cloud-text-dim);
+  background: var(--cloud-surface);
+  border-top: 1px solid var(--cloud-border);
+  flex-shrink: 0;
+  gap: 4px;
+}
+.soom-footer a {
+  color: var(--cloud-accent);
+  text-decoration: none;
+}
+
+/* ── Diagram theme overrides (preview inherits soom theme vars) ── */
+.soom-preview-content {
+  --soom-bg: var(--cloud-bg);
+  --soom-text: #E8EDF2;
+  --soom-grid-dot: #3D5A6E;
+  --soom-accent: #0A7BC4;
+  --soom-accent-glow: rgba(10, 123, 196, 0.6);
+  --soom-edge-color: #5B9BD5;
+  --soom-edge-glow: rgba(91, 155, 213, 0.5);
+  --soom-node-shadow: rgba(0, 0, 0, 0.5);
+  --soom-edge-shadow: rgba(0, 0, 0, 0.35);
+  --soom-completed-fill: #A8C4EC;
+  --soom-annot-bg: rgba(30, 42, 58, 0.92);
+  --soom-annot-text: #A8C4EC;
+  --soom-annot-border: rgba(10, 123, 196, 0.3);
+  --soom-controls-bg: rgba(16, 24, 36, 0.92);
+  --soom-controls-hover: rgba(255, 255, 255, 0.08);
+  --soom-edge-stroke: rgba(168, 196, 236, 0.45);
+  --soom-edge-stroke-active: #C0D8F8;
+  --soom-marker-fill: rgba(192, 216, 248, 0.85);
+  --soom-label-color: #E8EDF2;
+  --soom-edge-label-bg: rgba(22, 34, 50, 0.88);
+  --soom-edge-label-text: #A8C4EC;
+  --soom-subgraph-bg: rgba(26, 75, 122, 0.35);
+  --soom-subgraph-nested-bg: rgba(46, 95, 138, 0.35);
+  --soom-subgraph-border: #5B7BAD;
+  --soom-subgraph-label: #8BAAC8;
+  --soom-cluster-text: #A8C4EC;
+  --soom-shadow-rest: rgba(0, 0, 0, 0.55);
+  --soom-shadow-active: rgba(0, 0, 0, 0.7);
+  --soom-shadow-completed: rgba(0, 0, 0, 0.5);
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .soom-main {
+    flex-direction: column;
+  }
+  .soom-editor-panel {
+    width: 100%;
+    min-width: unset;
+    height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid var(--cloud-border);
+  }
+  .soom-preview-panel {
+    height: 60vh;
+  }
+}

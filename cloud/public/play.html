@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hansoom — Animate your diagrams</title>
+  <meta name="description" content="Turn Mermaid diagrams into animated, interactive HTML. Paste. Render. Share.">
+  <meta property="og:title" content="Hansoom — Animate your diagrams">
+  <meta property="og:description" content="Turn Mermaid diagrams into animated, interactive HTML. Paste. Render. Share.">
+  <meta property="og:url" content="https://hansoom.dev/play">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="/assets/play.css">
+  <link rel="stylesheet" href="/assets/diagram.css">
+</head>
+<body>
+  <header class="soom-header">
+    <a href="/?utm_source=play&utm_medium=logo&utm_campaign=cloud" class="soom-logo">hansoom</a>
+    <div class="soom-header-actions">
+      <a href="https://github.com/soom-dev/soom?utm_source=play&utm_medium=header&utm_campaign=cloud"
+         target="_blank" rel="noopener" class="soom-header-link">GitHub</a>
+      <button id="auth-btn" class="soom-btn soom-btn-secondary">Sign in with GitHub</button>
+    </div>
+  </header>
+
+  <main class="soom-main">
+    <div class="soom-editor-panel">
+      <div class="soom-editor-header">
+        <span class="soom-editor-title">Mermaid Source</span>
+        <button id="render-btn" class="soom-btn soom-btn-primary" disabled>Render</button>
+      </div>
+      <textarea id="source" class="soom-textarea" spellcheck="false" autocomplete="off"
+        placeholder="graph TD&#10;  A[Start] --> B[Process]&#10;  B --> C{Decision}&#10;  C -->|Yes| D[Done]&#10;  C -->|No| B"></textarea>
+      <div class="soom-editor-footer">
+        <button id="save-btn" class="soom-btn soom-btn-accent" disabled>Share</button>
+        <span id="status" class="soom-status"></span>
+      </div>
+    </div>
+
+    <div class="soom-preview-panel" id="preview-panel">
+      <div class="soom-preview-empty" id="preview-empty">
+        <p>Paste a Mermaid diagram and click <strong>Render</strong></p>
+      </div>
+      <div class="soom-loading" id="preview-loading" style="display:none">
+        <div class="soom-spinner"></div>
+        <span>Rendering diagram...</span>
+      </div>
+      <div class="soom-preview-content" id="preview-content" style="display:none">
+        <div id="preview-inner">
+          <div class="diagram-container" id="diagram-output"></div>
+        </div>
+      </div>
+      <div class="soom-preview-error" id="preview-error" style="display:none">
+        <p id="error-message"></p>
+      </div>
+    </div>
+  </main>
+
+  <div class="soom-share-modal" id="share-modal">
+    <div class="soom-share-card">
+      <h3>Diagram shared!</h3>
+      <div class="soom-share-url">
+        <input type="text" id="share-url" readonly>
+        <button id="copy-btn" class="soom-btn soom-btn-primary">Copy</button>
+      </div>
+      <div class="soom-share-actions">
+        <button id="share-close" class="soom-btn soom-btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="soom-footer">
+    Made with hansoom &mdash;
+    <a href="https://github.com/soom-dev/soom?utm_source=play&utm_medium=footer&utm_campaign=cloud"
+       target="_blank" rel="noopener">Open Source</a>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script src="/assets/runtime.js"></script>
+  <script type="module" src="/assets/play.js"></script>
+</body>
+</html>
