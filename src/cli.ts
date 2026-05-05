@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { Command } from 'commander';
 import { renderCommand } from './pipeline.js';
+import { readPrefs, writePrefs } from './telemetry/prefs.js';
 
 const program = new Command();
 
@@ -29,6 +30,36 @@ program
       console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
       process.exit(1);
     }
+  });
+
+const telemetry = program.command('telemetry').description('Manage telemetry preferences');
+
+telemetry
+  .command('status')
+  .description('Show current telemetry opt-in status')
+  .action(async () => {
+    const prefs = await readPrefs();
+    if (prefs === null) {
+      console.log('Telemetry: undecided (run `soom render` to see the first-run notice)');
+    } else {
+      console.log(`Telemetry: ${prefs.enabled ? 'enabled' : 'disabled'}`);
+    }
+  });
+
+telemetry
+  .command('enable')
+  .description('Opt in to anonymous usage telemetry')
+  .action(async () => {
+    await writePrefs({ enabled: true });
+    console.log('Telemetry enabled. Thank you for helping improve Hansoom.');
+  });
+
+telemetry
+  .command('disable')
+  .description('Opt out of anonymous usage telemetry')
+  .action(async () => {
+    await writePrefs({ enabled: false });
+    console.log('Telemetry disabled. No data will be sent.');
   });
 
 program.parse();
