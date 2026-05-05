@@ -25,6 +25,7 @@ jobs:
       pull-requests: read
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      e2e: ${{ steps.e2e-required.outputs.required }}
     steps:
       - uses: actions/checkout@v5
       - uses: dorny/paths-filter@v3
@@ -44,6 +45,39 @@ jobs:
               - '.prettierrc*'
               - 'prettier.config.*'
               - '.github/workflows/**'
+
+      # E2E is the slow lane (~1-2 min on the heaviest shard). Run it only
+      # when the PR is going to ship — release-labeled PRs and post-merge
+      # `push: branches: [main]` events. Regular feature/fix PRs get the
+      # unit-only path; the post-merge run is the safety net that would
+      # catch an e2e regression a label-less PR introduced.
+      #
+      # Three branches in precedence:
+      #   1. push to main           → required (catch regressions post-merge)
+      #   2. release:* label        → required (the PR is the release)
+      #   3. release: <level> title → required (label not yet added but the
+      #                              author signaled intent in the title)
+      #   else                      → not required
+      - name: Determine if e2e is required
+        id: e2e-required
+        env:
+          EVENT: ${{ github.event_name }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [ "$EVENT" = "push" ]; then
+            echo "required=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if echo "$LABELS" | grep -qE '"release:(major|minor|patch)"'; then
+            echo "required=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if echo "$TITLE" | grep -qiE '^release:[[:space:]]*(major|minor|patch)\b'; then
+            echo "required=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "required=false" >> "$GITHUB_OUTPUT"
 
   secrets:
     name: Secret Scan
@@ -112,7 +146,15 @@ jobs:
     name: Test
     needs: [changes]
     # Skip on doc-only PRs. Always run on push-to-main as the safety net.
-    if: github.event_name == 'push' || needs.changes.outputs.code == 'true'
+    # On code PRs without a release:* label, run only shard 1 — that shard
+    # carries the unit-test step (gated separately below) and skips the
+    # e2e step. Shards 2-4 drop entirely on non-release PRs because they
+    # would only run e2e. Push-to-main and release-labeled PRs run all 4
+    # shards as before.
+    if: |
+      github.event_name == 'push' ||
+      (needs.changes.outputs.code == 'true' &&
+        (matrix.shard == 1 || needs.changes.outputs.e2e == 'true'))
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -164,7 +206,10 @@ jobs:
       - name: Unit tests
         if: matrix.shard == 1
         run: bun run test
+      # Skipped on non-release code PRs (shard 1 still runs the unit-test
+      # step above). Re-enabled on push-to-main and release-labeled PRs.
       - name: E2E
+        if: github.event_name == 'push' || needs.changes.outputs.e2e == 'true'
         run: bun run test:e2e -- --shard=${{ matrix.shard }}/4
 
   # Aggregator: branch-protection requires a check named exactly `Test`,
