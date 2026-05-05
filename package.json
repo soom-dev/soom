@@ -24,7 +24,9 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test --path-ignore-patterns 'tests/e2e'",
     "test:e2e": "npx playwright test",
-    "preview": "bun run dev render examples/microservice.mmd -o /tmp/preview.html && open /tmp/preview.html"
+    "preview": "bun run dev render examples/microservice.mmd -o /tmp/preview.html && open /tmp/preview.html",
+    "agent:start": "bash scripts/agent-start.sh",
+    "agent:finish": "bash scripts/agent-finish.sh"
   },
   "license": "Apache-2.0",
   "repository": {
