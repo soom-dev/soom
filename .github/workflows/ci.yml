@@ -10,6 +10,41 @@ env:
   PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.playwright-cache
 
 jobs:
+  # Detect whether the PR touches any code-bearing path. If not (e.g. doc-only
+  # PRs that update CLAUDE.md or rename a vault path), `test` and `build` skip
+  # entirely and the merge waits only on lint + secrets + the test-aggregator
+  # check (which treats `skipped` as a pass for branch protection).
+  #
+  # `push: branches: [main]` events bypass the filter — the post-merge run is
+  # the safety net against a misconfigured filter letting a real code change
+  # slip through. We pay the full CI cost once per merge, never per PR.
+  changes:
+    name: Detect code changes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'src/**'
+              - 'tests/**'
+              - 'scripts/**'
+              - 'examples/**'
+              - 'package.json'
+              - 'bun.lock'
+              - 'tsconfig*.json'
+              - 'playwright.config.ts'
+              - 'eslint.config.*'
+              - '.prettierrc*'
+              - 'prettier.config.*'
+              - '.github/workflows/**'
+
   secrets:
     name: Secret Scan
     runs-on: ubuntu-latest
@@ -75,6 +110,9 @@ jobs:
 
   test:
     name: Test
+    needs: [changes]
+    # Skip on doc-only PRs. Always run on push-to-main as the safety net.
+    if: github.event_name == 'push' || needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -139,18 +177,28 @@ jobs:
     needs: [test]
     if: always()
     steps:
-      - name: Verify all shards passed
+      - name: Verify all shards passed (or were skipped on a doc-only PR)
         run: |
-          if [ "${{ needs.test.result }}" != "success" ]; then
-            echo "FAIL: at least one test shard did not pass (result=${{ needs.test.result }})"
+          # `skipped` happens when the `changes` filter says no code changed.
+          # Branch protection requires this `Test` check to pass; treat skipped
+          # as success so doc-only PRs aren't blocked.
+          if [ "${{ needs.test.result }}" != "success" ] && [ "${{ needs.test.result }}" != "skipped" ]; then
+            echo "FAIL: test job result=${{ needs.test.result }}"
             exit 1
           fi
-          echo "✓ All test shards passed"
+          if [ "${{ needs.test.result }}" = "skipped" ]; then
+            echo "✓ Tests skipped (no code changes detected)"
+          else
+            echo "✓ All test shards passed"
+          fi
 
   build:
     name: Build
     runs-on: ubuntu-latest
     needs: [lint, test]
+    # GitHub's default behavior skips a job whose `needs:` is skipped, so build
+    # is automatically a no-op on doc-only PRs (because `test` is skipped). No
+    # explicit conditional needed — the `needs: [test]` chain handles it.
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
