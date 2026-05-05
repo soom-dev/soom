@@ -1,0 +1,12 @@
+name = "soom-telemetry"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+
+# Cloudflare D1 binding. The `database_id` placeholder is replaced by the
+# value `wrangler d1 create soom-telemetry` returns at first deploy. Free
+# tier: 5M reads/day, 100k writes/day, 5GB storage — well above pre-launch
+# CLI volume.
+[[d1_databases]]
+binding = "DB"
+database_name = "soom-telemetry"
+database_id = "PLACEHOLDER_REPLACE_AFTER_d1_create"
