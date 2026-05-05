@@ -1,0 +1,28 @@
+name = "soom-dashboard"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+
+# Route: hansoom.dev/admin/* → this Worker.
+# Set up after deploy: Cloudflare Dashboard → Workers → Routes → Add route.
+# Pattern: hansoom.dev/admin/* (zone: hansoom.dev)
+#
+# Cloudflare Access (Zero Trust free tier) must protect /admin/* before exposing
+# this route to the internet. See README.md for setup steps.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "soom-telemetry"
+# Replace with the real database_id from `wrangler d1 list`:
+database_id = "PLACEHOLDER_REPLACE_WITH_D1_DATABASE_ID"
+
+[[kv_namespaces]]
+binding = "CACHE"
+# Replace with the real namespace id from `wrangler kv:namespace create soom-dashboard-cache`:
+id = "PLACEHOLDER_REPLACE_WITH_KV_NAMESPACE_ID"
+
+[vars]
+GITHUB_REPO = "soom-dev/soom"
+NPM_PACKAGE = "hansoom"
+# CF_ZONE_ID must be set as a secret (not here) — see README.
+# GITHUB_TOKEN must be set as a secret — see README.
+# CF_API_TOKEN must be set as a secret — see README.
