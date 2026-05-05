@@ -155,3 +155,4 @@ playwright-report/
 CLAUDE.md
 .claude/
 .claudeignore
+.worktrees/
